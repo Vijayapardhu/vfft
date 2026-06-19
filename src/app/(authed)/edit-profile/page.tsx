@@ -8,7 +8,7 @@ import { ImagePlus, Save } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { auth } from "@/firebase/auth";
 import { COLLECTIONS, playerDoc } from "@/firebase/collections";
@@ -23,6 +23,7 @@ import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyPlayer } from "@/hooks/usePlayers";
 import { useDocumentData } from "@/hooks/useFirestore";
+import { toast } from "@/hooks/useToast";
 import { isCloudinaryConfigured, uploadImage } from "@/services/cloudinaryService";
 import type { PlayerContact, PlayerRole } from "@/types";
 
@@ -120,6 +121,7 @@ export default function EditProfilePage() {
         }
       }
 
+      toast({ type: "success", message: "Profile updated!" });
       router.push(ROUTES.dashboard);
     } catch (e) {
       setFormError(e instanceof Error ? e.message : "Update failed. Please try again.");

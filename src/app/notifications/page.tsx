@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo } from "react";
-import { Bell, LogIn } from "lucide-react";
-import { doc, updateDoc } from "firebase/firestore";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo } from "react";
+import { Bell, CheckCheck, LogIn } from "lucide-react";
+import { doc, updateDoc, writeBatch } from "firebase/firestore";
 import { COLLECTIONS } from "@/firebase/collections";
 import { db } from "@/firebase/firestore";
 import { PageHeader } from "@/components/ui/page-header";
@@ -24,15 +25,29 @@ export default function NotificationsPage() {
     [all, uid],
   );
 
+  const unreadOwn = useMemo(
+    () => items.filter((n) => n.userId === uid && !n.read),
+    [items, uid],
+  );
+
   // Mark the user's own unread items read when they open the inbox.
   useEffect(() => {
-    const unread = items.filter((n) => n.userId === uid && !n.read);
-    if (unread.length === 0) return;
+    if (unreadOwn.length === 0) return;
     void Promise.allSettled(
-      unread.map((n) => updateDoc(doc(db, COLLECTIONS.notifications, n.id), { read: true })),
+      unreadOwn.map((n) => updateDoc(doc(db, COLLECTIONS.notifications, n.id), { read: true })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length, uid]);
+  }, [unreadOwn.length, uid]);
+
+  const handleMarkAllRead = useCallback(async () => {
+    const stillUnread = items.filter((n) => n.userId === uid && !n.read);
+    if (stillUnread.length === 0) return;
+    const batch = writeBatch(db);
+    stillUnread.forEach((n) =>
+      batch.update(doc(db, COLLECTIONS.notifications, n.id), { read: true }),
+    );
+    await batch.commit();
+  }, [items, uid]);
 
   if (isLoading) return <FullScreenLoader />;
 
@@ -59,7 +74,19 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8">
-      <PageHeader title="Notifications" subtitle="Your alerts and announcements." />
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <PageHeader title="Notifications" subtitle="Your alerts and announcements." />
+        {unreadOwn.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void handleMarkAllRead()}
+            className="mt-1 flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-ink bg-cream px-3 py-1.5 text-xs font-bold uppercase transition-colors hover:bg-vyellow"
+          >
+            <CheckCheck className="h-3.5 w-3.5" />
+            Mark all read
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <FullScreenLoader />
@@ -80,13 +107,11 @@ export default function NotificationsPage() {
                   fresh && "bg-vyellow/20",
                 )}
               >
-                <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border-2 border-ink bg-cream">
+                <div className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border-2 border-ink bg-cream">
                   {n.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={n.imageUrl} alt="" className="h-full w-full object-cover" />
+                    <Image src={n.imageUrl} alt="" fill className="object-cover" sizes="48px" />
                   ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src="/icon.svg" alt="VFFT" className="h-7 w-7" />
+                    <Image src="/icon.svg" alt="VFFT" width={28} height={28} />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -101,12 +126,15 @@ export default function NotificationsPage() {
                   </div>
                   <p className="mt-0.5 text-sm font-medium text-ink/70">{n.body}</p>
                   {n.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={n.imageUrl}
-                      alt=""
-                      className="mt-2 max-h-48 w-full rounded-lg border-2 border-ink object-cover"
-                    />
+                    <div className="relative mt-2 max-h-48 w-full overflow-hidden rounded-lg border-2 border-ink">
+                      <Image
+                        src={n.imageUrl}
+                        alt=""
+                        width={600}
+                        height={192}
+                        className="h-full max-h-48 w-full object-cover"
+                      />
+                    </div>
                   )}
                 </div>
               </div>

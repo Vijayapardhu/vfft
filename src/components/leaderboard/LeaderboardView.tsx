@@ -72,7 +72,12 @@ function TeamStandings() {
           <span className="hidden text-center font-bold sm:block">{t.wins}</span>
           <span className="hidden text-center font-bold sm:block">{t.losses}</span>
           <span className="hidden text-center font-bold sm:block">{t.kills}</span>
-          <span className="hidden text-center font-bold sm:block">{t.ndr}</span>
+          <span
+            className="hidden text-center font-bold sm:block"
+            title="Net Death Ratio — kills minus deaths, normalized per match"
+          >
+            {typeof t.ndr === "number" ? t.ndr.toFixed(2) : t.ndr}
+          </span>
           <span className="text-center text-lg font-bold sm:text-base">{t.points}</span>
         </Link>
       ))}

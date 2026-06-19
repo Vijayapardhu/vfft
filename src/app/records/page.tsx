@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Coins,
   Crown,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ROUTES } from "@/constants/routes";
 import { usePlayerStandings, useTeamStandings } from "@/hooks/useLeaderboard";
 import { usePlayers } from "@/hooks/usePlayers";
 import type { CachedPlayerStanding, CachedTeamStanding } from "@/types";
@@ -33,10 +35,49 @@ interface RecordHero {
   photoUrl?: string | null;
   color: string;
   icon: React.ElementType;
+  holderId?: string;
 }
 
 function RecordCard({ record, index }: { record: RecordHero; index: number }) {
   const Icon = record.icon;
+  const holderHref = record.holderId
+    ? record.type === "team"
+      ? ROUTES.team(record.holderId)
+      : ROUTES.player(record.holderId)
+    : undefined;
+
+  const holderRow = (
+    <div className="flex items-center gap-3 bg-cream px-5 py-4 transition-colors hover:bg-vyellow/20">
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border-2 border-ink bg-vpurple/20">
+        {record.photoUrl ? (
+          <Image
+            src={record.photoUrl}
+            alt={record.holder}
+            fill
+            className="object-cover"
+            sizes="48px"
+          />
+        ) : record.type === "team" ? (
+          <div className="grid h-full place-items-center">
+            <Shield className="h-5 w-5 text-ink/30" />
+          </div>
+        ) : (
+          <div className="grid h-full place-items-center">
+            <UserRound className="h-5 w-5 text-ink/30" />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="truncate font-bold">{record.holder}</p>
+        {record.holderSub && (
+          <p className="truncate text-xs font-bold uppercase text-ink/50">
+            {record.holderSub}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -61,36 +102,12 @@ function RecordCard({ record, index }: { record: RecordHero; index: number }) {
         </div>
       </div>
 
-      {/* Record holder */}
-      <div className="flex items-center gap-3 bg-cream px-5 py-4">
-        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border-2 border-ink bg-vpurple/20">
-          {record.photoUrl ? (
-            <Image
-              src={record.photoUrl}
-              alt={record.holder}
-              fill
-              className="object-cover"
-              sizes="48px"
-            />
-          ) : record.type === "team" ? (
-            <div className="grid h-full place-items-center">
-              <Shield className="h-5 w-5 text-ink/30" />
-            </div>
-          ) : (
-            <div className="grid h-full place-items-center">
-              <UserRound className="h-5 w-5 text-ink/30" />
-            </div>
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate font-bold">{record.holder}</p>
-          {record.holderSub && (
-            <p className="truncate text-xs font-bold uppercase text-ink/50">
-              {record.holderSub}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Record holder — links to player/team profile */}
+      {holderHref ? (
+        <Link href={holderHref}>{holderRow}</Link>
+      ) : (
+        holderRow
+      )}
     </motion.div>
   );
 }
@@ -133,6 +150,7 @@ export default function RecordsPage() {
       holder: byKills[0]?.ign ?? "No record yet",
       holderSub: byKills[0]?.teamName,
       photoUrl: byKills[0]?.photoURL,
+      holderId: byKills[0]?.playerId,
       color: "bg-vred",
       icon: Skull,
     },
@@ -144,6 +162,7 @@ export default function RecordsPage() {
       holder: byDmg[0]?.ign ?? "No record yet",
       holderSub: byDmg[0]?.teamName,
       photoUrl: byDmg[0]?.photoURL,
+      holderId: byDmg[0]?.playerId,
       color: "bg-vpurple",
       icon: Flame,
     },
@@ -155,6 +174,7 @@ export default function RecordsPage() {
       holder: byHS[0]?.ign ?? "No record yet",
       holderSub: byHS[0]?.teamName,
       photoUrl: byHS[0]?.photoURL,
+      holderId: byHS[0]?.playerId,
       color: "bg-vgreen",
       icon: Target,
     },
@@ -166,6 +186,7 @@ export default function RecordsPage() {
       holder: byMvp[0]?.ign ?? "No record yet",
       holderSub: byMvp[0]?.teamName,
       photoUrl: byMvp[0]?.photoURL,
+      holderId: byMvp[0]?.playerId,
       color: "bg-vyellow",
       icon: Star,
     },
@@ -176,6 +197,7 @@ export default function RecordsPage() {
       unit: "wins",
       holder: byTeamWins[0]?.teamName ?? "No record yet",
       photoUrl: byTeamWins[0]?.logoUrl,
+      holderId: byTeamWins[0]?.teamId,
       color: "bg-vblue",
       icon: Trophy,
     },
@@ -186,6 +208,7 @@ export default function RecordsPage() {
       unit: "team kills",
       holder: byTeamKills[0]?.teamName ?? "No record yet",
       photoUrl: byTeamKills[0]?.logoUrl,
+      holderId: byTeamKills[0]?.teamId,
       color: "bg-vred",
       icon: Swords,
     },
@@ -196,6 +219,7 @@ export default function RecordsPage() {
       unit: "points",
       holder: byTeamPts[0]?.teamName ?? "No record yet",
       photoUrl: byTeamPts[0]?.logoUrl,
+      holderId: byTeamPts[0]?.teamId,
       color: "bg-vgreen",
       icon: Crown,
     },
@@ -207,6 +231,7 @@ export default function RecordsPage() {
       holder: highestBid?.ign ?? "No auction yet",
       holderSub: "Highest auction price",
       photoUrl: highestBid?.photoURL,
+      holderId: highestBid?.id,
       color: "bg-vyellow",
       icon: Coins,
     },
