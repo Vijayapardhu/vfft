@@ -7,18 +7,18 @@ import { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Subtle magnetic button — drifts gently toward the cursor (no bounce, no tilt).
- * Premium pill styling: solid fill or hairline glass, soft shadow, slow lift.
+ * Neo-brutalist button that drifts gently toward the cursor (magnetic), keeping
+ * the game-theme thick border + hard shadow + push-on-press feel.
  */
 export function MagneticButton({
   href,
   children,
-  variant = "primary",
+  variant = "yellow",
   className,
 }: {
   href: string;
   children: ReactNode;
-  variant?: "primary" | "ghost";
+  variant?: "yellow" | "red" | "cream" | "ink";
   className?: string;
 }) {
   const ref = useRef<HTMLAnchorElement | null>(null);
@@ -39,10 +39,12 @@ export function MagneticButton({
     my.set(0);
   }
 
-  const styles =
-    variant === "primary"
-      ? "bg-ink text-cream shadow-[0_10px_30px_-10px_rgba(17,17,17,0.5)] hover:shadow-[0_18px_40px_-12px_rgba(17,17,17,0.55)]"
-      : "border border-ink/15 bg-white/40 text-ink backdrop-blur hover:bg-white/70";
+  const palette = {
+    yellow: "bg-vyellow text-ink",
+    red: "bg-vred text-ink",
+    cream: "bg-cream text-ink",
+    ink: "bg-ink text-cream",
+  }[variant];
 
   return (
     <motion.div style={{ x, y }} className="inline-block">
@@ -52,13 +54,12 @@ export function MagneticButton({
         onMouseMove={onMove}
         onMouseLeave={reset}
         className={cn(
-          "group relative inline-flex items-center gap-2 overflow-hidden rounded-full px-7 py-3.5 text-sm font-semibold uppercase tracking-wide transition-all duration-300",
-          styles,
+          "inline-flex min-h-12 items-center gap-2 rounded-2xl border-4 border-ink px-7 py-3 text-lg font-bold uppercase tracking-wide shadow-brutal-md transition-transform duration-100 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-brutal-lg active:translate-x-0 active:translate-y-0 active:shadow-brutal-sm",
+          palette,
           className,
         )}
       >
-        <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-[900ms] ease-out group-hover:translate-x-full" />
-        <span className="relative z-10 inline-flex items-center gap-2">{children}</span>
+        {children}
       </Link>
     </motion.div>
   );

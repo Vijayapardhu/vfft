@@ -12,6 +12,7 @@ import { CountUp } from "@/components/fx/CountUp";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { FullScreenLoader } from "@/components/ui/spinner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 import { ROUTES } from "@/constants/routes";
 import { useAuth } from "@/hooks/useAuth";
 import { useHomeContent } from "@/hooks/useHomeContent";
@@ -31,35 +32,31 @@ function SectionHeading({
   eyebrow,
   title,
   href,
-  dark = false,
 }: {
   eyebrow?: string;
   title: string;
   href?: string;
-  dark?: boolean;
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
       whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-      className="mb-8 flex items-end justify-between gap-4"
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className="mb-6 flex items-end justify-between gap-4"
     >
       <div>
         {eyebrow && (
-          <p className={`mb-2 text-[11px] font-semibold uppercase tracking-[0.3em] ${dark ? "text-cream/40" : "text-ink/40"}`}>
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.25em] text-ink/45">
             {eyebrow}
           </p>
         )}
-        <h2 className={`text-3xl font-light uppercase tracking-tight sm:text-4xl ${dark ? "text-cream" : "text-ink"}`}>
-          {title}
-        </h2>
+        <h2 className="text-3xl font-bold uppercase tracking-tight sm:text-4xl">{title}</h2>
       </div>
       {href && (
         <Link
           href={href}
-          className={`group inline-flex shrink-0 items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors ${dark ? "text-cream/50 hover:text-cream" : "text-ink/45 hover:text-ink"}`}
+          className="group inline-flex shrink-0 items-center gap-1 text-xs font-bold uppercase tracking-wider text-ink/50 transition-colors hover:text-ink"
         >
           View All
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -72,10 +69,10 @@ function SectionHeading({
 function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 60, filter: "blur(16px)" }}
+      initial={{ opacity: 0, y: 50, filter: "blur(12px)" }}
       whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
     >
       {children}
     </motion.div>
@@ -86,25 +83,26 @@ const HallOfFameCard = ({ entry }: { entry: WithId<HallOfFameEntry> }) => {
   const { data: champion } = useTeamById(entry.championTeamId);
   const { data: mvp } = usePlayer(entry.mvpPlayerId);
   return (
-    <TiltCard className="w-72 shrink-0" max={9}>
-      <div className="glass-dark relative overflow-hidden rounded-[1.5rem] p-6">
-        <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gold/20 blur-2xl" />
-        <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold">{entry.seasonName}</p>
-        <div className="mt-4 space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 shrink-0 text-cream/40" />
-            <span className="truncate font-light">{champion?.name ?? "—"}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Crown className="h-4 w-4 shrink-0 text-gold" />
-            <span className="truncate font-light">{mvp?.ign ?? "—"}</span>
-          </div>
+    <TiltCard className="w-64 shrink-0" max={9}>
+      <Card className="overflow-hidden">
+        <div className="border-b-4 border-ink bg-vyellow px-5 py-3">
+          <p className="truncate text-sm font-bold uppercase tracking-wide">{entry.seasonName}</p>
         </div>
-        <p className="mt-5 text-3xl font-extralight text-cream">
-          {entry.highestKills ?? "—"}
-          <span className="ml-1 text-xs uppercase tracking-widest text-cream/40">kills</span>
-        </p>
-      </div>
+        <CardContent className="space-y-2 p-5 text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 shrink-0 text-ink/50" />
+            <span className="truncate">{champion?.name ?? "—"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Crown className="h-4 w-4 shrink-0 text-vred" />
+            <span className="truncate">{mvp?.ign ?? "—"}</span>
+          </div>
+          <p className="pt-1 text-2xl font-bold">
+            {entry.highestKills ?? "—"}
+            <span className="ml-1 text-[10px] font-bold uppercase tracking-widest text-ink/40">kills</span>
+          </p>
+        </CardContent>
+      </Card>
     </TiltCard>
   );
 };
@@ -125,34 +123,30 @@ function TeamTile({
   return (
     <Link href={ROUTES.team(teamId)} className="block shrink-0">
       <TiltCard className="w-56" max={11}>
-        <div className="card-premium overflow-hidden rounded-[1.5rem]">
-          <div className="relative grid h-32 place-items-center overflow-hidden bg-spotlight">
+        <Card className="overflow-hidden">
+          <div className="bg-dots relative grid h-32 place-items-center border-b-4 border-ink bg-vpurple/40">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt={name} className="h-20 w-20 rounded-2xl object-cover shadow-soft" />
+              <img src={logoUrl} alt={name} className="h-20 w-20 rounded-2xl border-4 border-ink object-cover" />
             ) : (
-              <Shield className="h-12 w-12 text-ink/20" />
+              <Shield className="h-12 w-12 text-ink/30" />
             )}
           </div>
-          <div className="p-5">
-            <p className="truncate text-lg font-medium uppercase tracking-tight">{name}</p>
-            <div className="mt-3 flex gap-4 text-sm">
-              <span className="text-ink/50">
-                <span className="font-semibold text-ink">{wins}</span> W
-              </span>
-              <span className="text-ink/50">
-                <span className="font-semibold text-ink">{points}</span> Pts
-              </span>
+          <CardContent className="p-5">
+            <p className="truncate text-lg font-bold uppercase">{name}</p>
+            <div className="mt-3 flex gap-2 text-xs font-bold uppercase">
+              <span className="rounded-lg border-2 border-ink bg-vgreen px-2 py-0.5">{wins} W</span>
+              <span className="rounded-lg border-2 border-ink bg-vyellow px-2 py-0.5">{points} Pts</span>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </TiltCard>
     </Link>
   );
 }
 
 const HomeSkeleton = () => (
-  <div className="bg-grid-fine relative min-h-[calc(100dvh-4rem)] overflow-hidden px-6 py-16">
+  <div className="bg-grid relative min-h-[calc(100dvh-4rem)] overflow-hidden px-6 py-16">
     <div className="mx-auto flex max-w-2xl flex-col gap-8 pt-10">
       <Skeleton className="h-8 w-56 rounded-full" />
       <Skeleton className="h-40 w-full" />
@@ -203,10 +197,10 @@ export default function HomePage() {
     .slice(0, 4);
 
   const overview = [
-    { label: "Players", value: players.length },
-    { label: "Franchises", value: teams.length },
-    { label: "Matches", value: matches.length },
-    { label: "Honours", value: hallOfFameEntries.length },
+    { label: "Players", value: players.length, bg: "bg-vblue" },
+    { label: "Franchises", value: teams.length, bg: "bg-vgreen" },
+    { label: "Matches", value: matches.length, bg: "bg-vred" },
+    { label: "Honours", value: hallOfFameEntries.length, bg: "bg-vyellow" },
   ];
 
   return (
@@ -214,17 +208,17 @@ export default function HomePage() {
       <CinematicHero />
 
       {/* BANNER CAROUSEL */}
-      <section className="mx-auto max-w-6xl px-6 pt-6">
+      <section className="mx-auto max-w-6xl px-5 pt-6">
         <BannerCarousel />
       </section>
 
-      {/* MARQUEE — slim */}
+      {/* MARQUEE */}
       {marqueeItems.length > 0 && (
-        <div className="mt-10 overflow-hidden border-y border-ink/10 py-3">
-          <div className="flex w-max animate-marquee whitespace-nowrap text-xs font-semibold uppercase tracking-[0.2em] text-ink/55">
+        <div className="mt-10 overflow-hidden border-y-4 border-ink bg-vyellow py-3">
+          <div className="flex w-max animate-marquee whitespace-nowrap text-sm font-bold uppercase tracking-wide">
             {[...marqueeItems, ...marqueeItems].map((item, i) => (
-              <span key={i} className="mx-7 inline-flex items-center gap-2.5">
-                <Zap className="h-3.5 w-3.5 text-gold" /> {item.text}
+              <span key={i} className="mx-6 inline-flex items-center gap-2.5">
+                <Zap className="h-4 w-4" /> {item.text}
               </span>
             ))}
           </div>
@@ -232,26 +226,25 @@ export default function HomePage() {
       )}
 
       {/* SEASON OVERVIEW */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
-        <Reveal>
-          <div className="glass grid grid-cols-2 overflow-hidden rounded-[1.75rem] sm:grid-cols-4">
-            {overview.map((s, i) => (
-              <div key={s.label} className={`px-6 py-8 ${i > 0 ? "border-l border-ink/8" : ""}`}>
-                <div className="text-4xl font-extralight tracking-tight sm:text-5xl">
+      <section className="mx-auto max-w-6xl px-5 py-14">
+        <SectionHeading eyebrow="At a glance" title="Season Overview" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {overview.map((s, i) => (
+            <Reveal key={s.label} delay={i * 0.05}>
+              <div className={`rounded-3xl border-4 border-ink ${s.bg} p-5 shadow-brutal`}>
+                <div className="text-4xl font-bold sm:text-5xl">
                   <CountUp value={s.value} />
                 </div>
-                <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-ink/45">
-                  {s.label}
-                </div>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-wide text-ink/70">{s.label}</div>
               </div>
-            ))}
-          </div>
-        </Reveal>
+            </Reveal>
+          ))}
+        </div>
       </section>
 
       {/* UPCOMING MATCH */}
       {upcomingMatchId && (
-        <section className="mx-auto max-w-5xl px-6 py-10">
+        <section className="mx-auto max-w-5xl px-5 py-10">
           <SectionHeading eyebrow="Next up" title="Upcoming Match" href={ROUTES.matches} />
           <Reveal>
             <VersusMatch matchId={upcomingMatchId} />
@@ -261,7 +254,7 @@ export default function HomePage() {
 
       {/* TOP TEAMS */}
       {topTeams.length > 0 && (
-        <section className="mx-auto max-w-6xl px-6 py-10">
+        <section className="mx-auto max-w-6xl px-5 py-10">
           <SectionHeading eyebrow="Franchises" title="Top Teams" href={ROUTES.teams} />
           <div className="flex gap-6 overflow-x-auto pb-4" style={{ scrollSnapType: "x mandatory" }}>
             {topTeams.map((t) => (
@@ -273,9 +266,9 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* TOP PLAYERS — FUT cards */}
+      {/* TOP PLAYERS */}
       {featuredPlayerIds.length > 0 && (
-        <section className="mx-auto max-w-6xl px-6 py-10">
+        <section className="mx-auto max-w-6xl px-5 py-10">
           <SectionHeading eyebrow="Stars" title="Top Players" href={ROUTES.players} />
           <div className="flex gap-6 overflow-x-auto pb-4" style={{ scrollSnapType: "x mandatory" }}>
             {featuredPlayerIds.map((id) => (
@@ -289,30 +282,29 @@ export default function HomePage() {
 
       {/* LIVE LEADERBOARD */}
       {teamStandings.length > 0 && (
-        <section className="mx-auto max-w-4xl px-6 py-10">
+        <section className="mx-auto max-w-4xl px-5 py-10">
           <SectionHeading eyebrow="Standings" title="Live Leaderboard" href={ROUTES.leaderboard} />
           <Reveal>
-            <div className="card-premium overflow-hidden rounded-[1.5rem]">
-              {teamStandings.slice(0, 6).map((t, i) => (
+            <div className="overflow-hidden rounded-3xl border-4 border-ink shadow-brutal-sm">
+              <div className="grid grid-cols-[2.5rem_1fr_3rem_3.5rem] gap-2 border-b-4 border-ink bg-ink px-4 py-3 text-xs font-bold uppercase tracking-wide text-cream">
+                <span>#</span><span>Team</span><span className="text-center">W</span><span className="text-right">Pts</span>
+              </div>
+              {teamStandings.slice(0, 6).map((t) => (
                 <Link
                   key={t.teamId}
                   href={ROUTES.team(t.teamId)}
-                  className="flex items-center gap-4 border-b border-ink/8 px-5 py-4 transition-colors last:border-0 hover:bg-ink/[0.03]"
+                  className="grid grid-cols-[2.5rem_1fr_3rem_3.5rem] items-center gap-2 border-b-2 border-ink/10 bg-cream px-4 py-3 transition-colors last:border-0 hover:bg-vyellow/40"
                 >
-                  <span className={`w-6 text-center text-lg font-light ${i === 0 ? "text-gold" : "text-ink/40"}`}>
-                    {t.rank}
+                  <span className="text-lg font-bold">{t.rank}</span>
+                  <span className="flex min-w-0 items-center gap-2 font-bold uppercase">
+                    {t.logoUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.logoUrl} alt="" className="h-7 w-7 rounded-lg border-2 border-ink object-cover" />
+                    )}
+                    <span className="truncate">{t.teamName}</span>
                   </span>
-                  {t.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.logoUrl} alt="" className="h-9 w-9 rounded-xl object-cover" />
-                  ) : (
-                    <span className="grid h-9 w-9 place-items-center rounded-xl bg-ink/5">
-                      <Shield className="h-4 w-4 text-ink/30" />
-                    </span>
-                  )}
-                  <span className="flex-1 truncate font-medium uppercase tracking-tight">{t.teamName}</span>
-                  <span className="hidden text-sm text-ink/50 sm:block">{t.wins} W</span>
-                  <span className="w-14 text-right text-lg font-light">{t.points}</span>
+                  <span className="text-center font-bold text-vgreen">{t.wins}</span>
+                  <span className="text-right text-lg font-bold">{t.points}</span>
                 </Link>
               ))}
             </div>
@@ -322,7 +314,7 @@ export default function HomePage() {
 
       {/* RECENT RESULTS */}
       {recentResults.length > 0 && (
-        <section className="mx-auto max-w-6xl px-6 py-10">
+        <section className="mx-auto max-w-6xl px-5 py-10">
           <SectionHeading eyebrow="Scores" title="Recent Results" href={ROUTES.matches} />
           <div className="grid gap-4 sm:grid-cols-2">
             {recentResults.map((m, i) => {
@@ -330,13 +322,13 @@ export default function HomePage() {
               const t2 = teams.find((t) => t.id === m.team2Id);
               return (
                 <Reveal key={m.id} delay={i * 0.05}>
-                  <Link href={ROUTES.match(m.id)} className="card-premium flex items-center justify-between rounded-2xl px-5 py-4 transition-transform hover:-translate-y-0.5">
+                  <Link href={ROUTES.match(m.id)} className="flex items-center justify-between rounded-2xl border-4 border-ink bg-cream px-5 py-4 shadow-brutal-sm transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="truncate font-medium uppercase tracking-tight">{t1?.name ?? "TBD"}</span>
-                      <span className="text-xs font-light text-ink/40">vs</span>
-                      <span className="truncate font-medium uppercase tracking-tight">{t2?.name ?? "TBD"}</span>
+                      <span className="truncate font-bold uppercase">{t1?.name ?? "TBD"}</span>
+                      <span className="text-xs font-bold text-ink/40">vs</span>
+                      <span className="truncate font-bold uppercase">{t2?.name ?? "TBD"}</span>
                     </div>
-                    <span className="ml-3 shrink-0 rounded-full border border-ink/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink/50">
+                    <span className="ml-3 shrink-0 rounded-full border-2 border-ink bg-vgreen px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
                       Final
                     </span>
                   </Link>
@@ -347,13 +339,11 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* HALL OF FAME — cinematic dark */}
+      {/* HALL OF FAME */}
       {hallOfFameEntries.length > 0 && (
-        <section className="relative my-10 overflow-hidden bg-ink py-20">
-          <div className="bg-spotlight absolute inset-0 opacity-70" />
-          <div className="bg-grid-fine absolute inset-0 opacity-[0.06]" />
-          <div className="relative mx-auto max-w-6xl px-6">
-            <SectionHeading eyebrow="Legacy" title="Hall of Fame" href={ROUTES.hallOfFame} dark />
+        <section className="bg-grid my-10 border-y-4 border-ink py-14">
+          <div className="mx-auto max-w-6xl px-5">
+            <SectionHeading eyebrow="Legacy" title="Hall of Fame" href={ROUTES.hallOfFame} />
             <div className="flex gap-6 overflow-x-auto pb-4" style={{ scrollSnapType: "x mandatory" }}>
               {hallOfFameEntries.map((entry) => (
                 <div key={entry.id} style={{ scrollSnapAlign: "start" }}>
@@ -365,26 +355,26 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* NEWS — magazine */}
+      {/* NEWS */}
       {news.length > 0 && (
-        <section className="mx-auto max-w-6xl px-6 py-12">
+        <section className="mx-auto max-w-6xl px-5 py-12">
           <SectionHeading eyebrow="Stories" title="Latest News" href={ROUTES.news} />
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {news.slice(0, 6).map((a, i) => (
               <Reveal key={a.id} delay={i * 0.06}>
                 <Link href={`/news/${a.slug}`} className="group block">
-                  <div className="card-premium overflow-hidden rounded-[1.5rem] transition-transform duration-500 hover:-translate-y-1">
+                  <Card className="overflow-hidden transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5">
                     {a.coverImage && (
-                      <div className="aspect-[16/10] overflow-hidden">
+                      <div className="aspect-[16/10] overflow-hidden border-b-4 border-ink">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={a.coverImage} alt={a.title} className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-105" />
+                        <img src={a.coverImage} alt={a.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                       </div>
                     )}
-                    <div className="p-5">
-                      <p className="text-lg font-medium leading-snug">{a.title}</p>
-                      {a.excerpt && <p className="mt-2 line-clamp-2 text-sm font-light text-ink/55">{a.excerpt}</p>}
-                    </div>
-                  </div>
+                    <CardContent className="p-5">
+                      <p className="text-lg font-bold leading-snug">{a.title}</p>
+                      {a.excerpt && <p className="mt-2 line-clamp-2 text-sm font-medium text-ink/60">{a.excerpt}</p>}
+                    </CardContent>
+                  </Card>
                 </Link>
               </Reveal>
             ))}
@@ -394,13 +384,19 @@ export default function HomePage() {
 
       {/* SPONSORS */}
       {sponsors.length > 0 && (
-        <section className="mx-auto max-w-4xl px-6 py-16">
-          <p className="mb-8 text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-ink/35">
+        <section className="mx-auto max-w-4xl px-5 py-16">
+          <p className="mb-8 text-center text-[11px] font-bold uppercase tracking-[0.3em] text-ink/40">
             Our Partners
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-10">
+          <div className="flex flex-wrap items-center justify-center gap-6">
             {sponsors.map((s) => (
-              <a key={s.id} href={s.website} target="_blank" rel="noopener noreferrer" className="opacity-50 grayscale transition hover:opacity-100 hover:grayscale-0">
+              <a
+                key={s.id}
+                href={s.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-2xl border-4 border-ink bg-cream p-3 shadow-brutal-xs transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.logoUrl} alt={s.name} className="h-10 w-auto object-contain" />
               </a>

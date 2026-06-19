@@ -93,7 +93,7 @@ export function IntroSplash() {
         </div>
         <div
           ref={season}
-          className="mt-5 text-[10px] font-semibold uppercase tracking-[0.5em] text-cream/55 sm:text-sm"
+          className="mt-5 text-[10px] font-bold uppercase tracking-[0.5em] text-vyellow sm:text-sm"
         >
           Season One
         </div>

@@ -6,20 +6,20 @@
    Color spec: PRD §11 / UID §3 · Type: UID §4 · Shadows/borders: ADB §11
    ============================================================================ */
 @theme {
-  /* --- Brand palette (premium refresh — Riot/Arc/Porsche direction) ----- */
-  --color-cream: #f8f6f0; /* app background — warm off-white */
-  --color-ink: #111111; /* text / hairline borders */
-  --color-vred: #ff4d4d;
+  /* --- Brand palette — neo-brutalist game theme (PRD §11 / UID §3) ------ */
+  --color-cream: #fffdf5; /* app background */
+  --color-ink: #000000; /* borders, text, hard shadows */
+  --color-vred: #ff6b6b;
   --color-vyellow: #ffd93d;
-  --color-gold: #d4af37; /* premium accent */
+  --color-gold: #ffd93d; /* alias → yellow (game-theme "gold") */
   --color-vpurple: #c4b5fd;
   --color-vgreen: #4ade80;
   --color-vblue: #60a5fa;
-  --color-indigo: #4f46e5;
+  --color-indigo: #60a5fa; /* alias → blue */
 
-  /* --- Soft, premium shadows (depth without cartoon borders) ----------- */
-  --shadow-soft: 0 10px 30px -12px rgba(17, 17, 17, 0.18);
-  --shadow-soft-lg: 0 30px 60px -20px rgba(17, 17, 17, 0.28);
+  /* --- Soft shadows (used by a few overlays; cards use brutal shadows) -- */
+  --shadow-soft: 0 10px 30px -12px rgba(0, 0, 0, 0.2);
+  --shadow-soft-lg: 0 26px 60px -20px rgba(0, 0, 0, 0.3);
 
   /* --- Typography — Space Grotesk (wired via next/font in layout.tsx) --- */
   --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;

@@ -78,7 +78,7 @@ export function BannerCarousel({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "group relative aspect-[16/9] w-full overflow-hidden rounded-3xl border-4 border-ink shadow-brutal-md sm:aspect-[21/9]",
+        "group relative aspect-[16/9] w-full overflow-hidden rounded-3xl border-4 border-ink shadow-brutal-md sm:aspect-[21/8]",
         className,
       )}
       onMouseEnter={() => setPaused(true)}

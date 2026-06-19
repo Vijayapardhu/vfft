@@ -11,11 +11,11 @@ type Rarity = "gold" | "elite" | "legend";
 
 const RARITY: Record<
   Rarity,
-  { label: string; accent: string; chip: string; sheen: boolean }
+  { label: string; wash: string; chip: string }
 > = {
-  gold: { label: "Gold", accent: "from-gold/40 to-transparent", chip: "bg-gold/90 text-ink", sheen: false },
-  elite: { label: "Elite", accent: "from-indigo/30 to-transparent", chip: "bg-indigo text-white", sheen: true },
-  legend: { label: "Legend", accent: "from-gold/60 via-white/40 to-transparent", chip: "bg-ink text-gold", sheen: true },
+  gold: { label: "Gold", wash: "bg-vyellow", chip: "bg-vyellow text-ink" },
+  elite: { label: "Elite", wash: "bg-vpurple", chip: "bg-vpurple text-ink" },
+  legend: { label: "Legend", wash: "bg-vred", chip: "bg-ink text-vyellow" },
 };
 
 function ratingFor(s: {
@@ -36,7 +36,7 @@ function ratingFor(s: {
 
 const rarityFor = (r: number): Rarity => (r >= 85 ? "legend" : r >= 72 ? "elite" : "gold");
 
-/** Premium FIFA-Ultimate-Team-style card backed by real season stats. */
+/** FIFA-Ultimate-Team-style card in the neo-brutalist game theme. */
 export function FutPlayerCard({ playerId, size = "md" }: { playerId: string; size?: "md" | "lg" }) {
   const { data: player } = usePlayer(playerId);
   const { data: stats } = usePlayerSeasonStats(playerId);
@@ -45,52 +45,45 @@ export function FutPlayerCard({ playerId, size = "md" }: { playerId: string; siz
   const rating = ratingFor(stats);
   const rarity = rarityFor(rating);
   const r = RARITY[rarity];
-  const w = size === "lg" ? "w-64 sm:w-72" : "w-44 sm:w-52";
+  const w = size === "lg" ? "w-60 sm:w-72" : "w-44 sm:w-52";
 
   return (
     <Link href={ROUTES.player(playerId)} className="group block shrink-0">
       <TiltCard className={w} max={12}>
-        <div className="card-premium relative overflow-hidden rounded-[1.75rem]">
-          {/* rarity wash */}
-          <div className={cn("pointer-events-none absolute inset-0 bg-gradient-to-b opacity-70", r.accent)} />
-          {/* subtle sheen sweep on hover */}
-          {r.sheen && (
-            <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -translate-x-full bg-gradient-to-r from-transparent via-white/45 to-transparent blur-md transition-transform duration-[1100ms] ease-out group-hover:translate-x-[420%]" />
-          )}
+        <div className="overflow-hidden rounded-3xl border-4 border-ink bg-cream shadow-brutal-md">
+          {/* rarity header */}
+          <div className={cn("relative flex items-start justify-between border-b-4 border-ink p-4", r.wash)}>
+            <div className="leading-none">
+              <div className={cn("font-bold", size === "lg" ? "text-5xl" : "text-4xl")}>{rating}</div>
+              <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-ink/70">{player.role}</div>
+            </div>
+            <span className={cn("rounded-lg border-2 border-ink px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider", r.chip)}>
+              {r.label}
+            </span>
+          </div>
 
-          <div className="relative">
-            <div className="flex items-start justify-between p-4 pb-0">
-              <div className="leading-none">
-                <div className={cn("font-light tracking-tight", size === "lg" ? "text-5xl" : "text-4xl")}>{rating}</div>
-                <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink/50">{player.role}</div>
+          {/* portrait */}
+          <div className={cn("relative mx-auto mt-4 aspect-square overflow-hidden rounded-2xl border-4 border-ink bg-vpurple/30", size === "lg" ? "w-40" : "w-28 sm:w-32")}>
+            {player.photoURL ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={player.photoURL} alt={player.ign} className="h-full w-full object-cover" />
+            ) : (
+              <div className="grid h-full place-items-center">
+                <UserRound className="h-10 w-10 text-ink/30" />
               </div>
-              <span className={cn("rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", r.chip)}>
-                {r.label}
-              </span>
-            </div>
+            )}
+          </div>
 
-            <div className={cn("relative mx-auto mt-2 aspect-square overflow-hidden rounded-2xl bg-ink/5", size === "lg" ? "w-40" : "w-28 sm:w-32")}>
-              {player.photoURL ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={player.photoURL} alt={player.ign} className="h-full w-full object-cover" />
-              ) : (
-                <div className="grid h-full place-items-center">
-                  <UserRound className="h-10 w-10 text-ink/25" />
-                </div>
-              )}
-            </div>
+          <div className="px-4 pt-3 text-center">
+            <p className={cn("truncate font-bold uppercase tracking-tight", size === "lg" ? "text-xl" : "text-base")}>
+              {player.ign}
+            </p>
+          </div>
 
-            <div className="px-4 pt-3 text-center">
-              <p className={cn("truncate font-semibold uppercase tracking-wide", size === "lg" ? "text-xl" : "text-base")}>
-                {player.ign}
-              </p>
-            </div>
-
-            <div className="mt-3 grid grid-cols-3 gap-1 border-t border-ink/10 px-4 py-3 text-center">
-              <Stat label="Kills" value={stats?.kills ?? 0} />
-              <Stat label="HS" value={stats?.headshots ?? 0} />
-              <Stat label="MVP" value={stats?.mvpAwards ?? 0} />
-            </div>
+          <div className="mt-3 grid grid-cols-3 gap-1 border-t-4 border-ink px-3 py-3 text-center">
+            <Stat label="Kills" value={stats?.kills ?? 0} />
+            <Stat label="HS" value={stats?.headshots ?? 0} />
+            <Stat label="MVP" value={stats?.mvpAwards ?? 0} />
           </div>
         </div>
       </TiltCard>
@@ -101,8 +94,8 @@ export function FutPlayerCard({ playerId, size = "md" }: { playerId: string; siz
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <div className="text-base font-semibold">{value}</div>
-      <div className="text-[9px] font-semibold uppercase tracking-wider text-ink/45">{label}</div>
+      <div className="text-base font-bold">{value}</div>
+      <div className="text-[9px] font-bold uppercase tracking-wider text-ink/50">{label}</div>
     </div>
   );
 }
