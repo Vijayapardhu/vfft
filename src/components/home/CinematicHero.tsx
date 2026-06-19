@@ -62,11 +62,20 @@ export function CinematicHero() {
     [players],
   );
 
+  // The hero "Season MVP" only appears for a real top performer. A player with
+  // all-zero stats (or a brand-new season with no results) shows no MVP card.
   const mvpId = useMemo(() => {
-    if (home?.featuredPlayerIds?.[0]) return home.featuredPlayerIds[0];
-    const ranked = [...standings].sort((a, b) => b.mvpAwards - a.mvpAwards || b.kills - a.kills);
-    return ranked[0]?.playerId ?? approvedPlayers[0]?.id ?? null;
-  }, [home?.featuredPlayerIds, standings, approvedPlayers]);
+    const top = [...standings].sort(
+      (a, b) => b.mvpAwards - a.mvpAwards || b.kills - a.kills,
+    )[0];
+    const hasStats =
+      !!top &&
+      ((top.kills ?? 0) > 0 ||
+        (top.mvpAwards ?? 0) > 0 ||
+        (top.headshots ?? 0) > 0 ||
+        (top.damage ?? 0) > 0);
+    return hasStats ? top.playerId : null;
+  }, [standings]);
 
   const stats = [
     { label: "Players", value: approvedPlayers.length },
