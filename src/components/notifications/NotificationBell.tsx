@@ -11,10 +11,9 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
 
 /**
- * In-app notification inbox. Reads the Firestore `notifications` collection in
- * real time and shows everything addressed to the signed-in user — both their
- * targeted notifications (e.g. lineup reminders) and "all" broadcasts. Targeted
- * items are marked read when the panel opens.
+ * In-app notification inbox (neo-brutalist). Live Firestore listener over every
+ * notification addressed to the signed-in user (their targeted ones + "all"
+ * broadcasts). Shows the notification image when present, else the VFFT mark.
  */
 export function NotificationBell() {
   const { user, isAuthenticated } = useAuth();
@@ -36,7 +35,6 @@ export function NotificationBell() {
   async function toggle() {
     const next = !open;
     setOpen(next);
-    // Mark the user's own unread items read when the panel opens.
     if (next && unread.length > 0) {
       await Promise.allSettled(
         unread.map((n) =>
@@ -52,11 +50,11 @@ export function NotificationBell() {
         type="button"
         onClick={toggle}
         aria-label="Notifications"
-        className="relative grid h-10 w-10 place-items-center rounded-xl border-2 border-ink bg-cream transition-colors hover:bg-vyellow"
+        className="relative grid h-10 w-10 place-items-center rounded-xl border-2 border-ink bg-cream shadow-brutal-xs transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-vyellow"
       >
         <Bell className="h-5 w-5" />
         {unread.length > 0 && (
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full border-2 border-ink bg-vred px-1 text-[10px] font-bold text-cream">
+          <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 animate-pulse place-items-center rounded-full border-2 border-ink bg-vred px-1 text-[10px] font-bold text-cream">
             {unread.length > 9 ? "9+" : unread.length}
           </span>
         )}
@@ -64,39 +62,64 @@ export function NotificationBell() {
 
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-30"
-            onClick={() => setOpen(false)}
-            aria-hidden
-          />
-          <div className="absolute right-0 z-40 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-2xl border-4 border-ink bg-cream shadow-brutal">
-            <div className="border-b-4 border-ink bg-vyellow px-4 py-2 text-sm font-bold uppercase">
-              Notifications
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden />
+          <div className="absolute right-0 z-40 mt-3 w-[22rem] max-w-[92vw] overflow-hidden rounded-2xl border-4 border-ink bg-cream shadow-brutal-md">
+            <div className="flex items-center justify-between border-b-4 border-ink bg-vyellow px-4 py-2.5">
+              <span className="text-sm font-bold uppercase tracking-wide">Notifications</span>
+              {unread.length > 0 && (
+                <span className="rounded-full border-2 border-ink bg-vred px-2 py-0.5 text-[10px] font-bold uppercase text-cream">
+                  {unread.length} new
+                </span>
+              )}
             </div>
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[26rem] overflow-y-auto">
               {items.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm font-medium text-ink/50">
-                  No notifications yet.
-                </p>
+                <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+                  <Bell className="h-8 w-8 text-ink/20" />
+                  <p className="text-sm font-medium text-ink/50">No notifications yet.</p>
+                </div>
               ) : (
                 items.map((n) => {
-                  const body = (
+                  const fresh = n.userId === uid && !n.read;
+                  const inner = (
                     <div
                       className={cn(
-                        "border-b-2 border-ink/10 px-4 py-3 last:border-0",
-                        n.userId === uid && !n.read && "bg-vyellow/30",
+                        "flex gap-3 border-b-2 border-ink/10 px-4 py-3 transition-colors last:border-0 hover:bg-vyellow/30",
+                        fresh && "bg-vyellow/20",
                       )}
                     >
-                      <p className="text-sm font-bold">{n.title}</p>
-                      <p className="text-xs font-medium text-ink/60">{n.body}</p>
+                      <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border-2 border-ink bg-cream">
+                        {n.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={n.imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src="/icon.svg" alt="VFFT" className="h-7 w-7" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1.5 text-sm font-bold">
+                          {fresh && <span className="h-2 w-2 shrink-0 rounded-full bg-vred" />}
+                          <span className="truncate">{n.title}</span>
+                        </p>
+                        <p className="mt-0.5 line-clamp-2 text-xs font-medium text-ink/60">{n.body}</p>
+                        {n.imageUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={n.imageUrl}
+                            alt=""
+                            className="mt-2 max-h-28 w-full rounded-lg border-2 border-ink object-cover"
+                          />
+                        )}
+                      </div>
                     </div>
                   );
                   return n.href ? (
                     <Link key={n.id} href={n.href} onClick={() => setOpen(false)}>
-                      {body}
+                      {inner}
                     </Link>
                   ) : (
-                    <div key={n.id}>{body}</div>
+                    <div key={n.id}>{inner}</div>
                   );
                 })
               )}

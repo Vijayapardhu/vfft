@@ -19,6 +19,7 @@ export async function POST(req: Request) {
   const title = body?.title;
   const message = body?.body;
   const href = typeof body?.href === "string" ? body.href : undefined;
+  const imageUrl = typeof body?.imageUrl === "string" && body.imageUrl ? body.imageUrl : undefined;
 
   if (typeof title !== "string" || typeof message !== "string" || !title || !message) {
     return NextResponse.json({ error: "title and body are required." }, { status: 400 });
@@ -26,10 +27,10 @@ export async function POST(req: Request) {
 
   try {
     if (userId) {
-      const id = await sendUserNotification({ userId, type, title, body: message, href });
+      const id = await sendUserNotification({ userId, type, title, body: message, href, imageUrl });
       return NextResponse.json({ ok: true, id });
     }
-    const { id, pushed } = await broadcastNotification({ type, title, body: message, href });
+    const { id, pushed } = await broadcastNotification({ type, title, body: message, href, imageUrl });
     return NextResponse.json({ ok: true, id, pushed });
   } catch (e) {
     return NextResponse.json(

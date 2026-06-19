@@ -18,6 +18,8 @@ export interface Notification extends Timestamps {
   read: boolean;
   /** Optional deep-link target. */
   href?: string;
+  /** Optional image (Cloudinary) shown in the bell + push. */
+  imageUrl?: string;
   data?: Record<string, string>;
 }
 

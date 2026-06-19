@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { COLLECTIONS } from "@/firebase/collections";
 import { isFirebaseConfigured } from "@/firebase/config";
 import { db } from "@/firebase/firestore";
-import { onForegroundMessage, requestFcmToken } from "@/firebase/messaging";
+import { requestFcmToken } from "@/firebase/messaging";
 import { useAuth } from "./useAuth";
 
 type Status = NotificationPermission | "unsupported";
@@ -28,24 +28,10 @@ export function useFcm() {
     setPermission(Notification.permission);
   }, []);
 
-  // Foreground messages → show a native notification.
-  useEffect(() => {
-    let unsub: (() => void) | undefined;
-    let active = true;
-    void onForegroundMessage((payload) => {
-      const n = payload.notification;
-      if (n?.title && Notification.permission === "granted") {
-        new Notification(n.title, { body: n.body ?? "" });
-      }
-    }).then((u) => {
-      if (active) unsub = u;
-      else u();
-    });
-    return () => {
-      active = false;
-      unsub?.();
-    };
-  }, []);
+  // NOTE: We intentionally do NOT pop a native notification for foreground
+  // messages. When the app is open, the in-app bell (NotificationBell, a live
+  // Firestore listener) updates instantly — popping an OS notification too would
+  // be a duplicate. The service worker shows the OS push only when backgrounded.
 
   const enable = useCallback(async () => {
     if (!isFirebaseConfigured || !firebaseUser) return;

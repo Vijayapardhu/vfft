@@ -18,18 +18,34 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// We send DATA-ONLY messages (see src/server/notify.ts), so onBackgroundMessage
+// is the ONLY thing that displays the push — exactly once, no duplicates.
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || "VFFT";
-  self.registration.showNotification(title, {
-    body: payload.notification?.body || "",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
-    data: payload.data || {},
-  });
+  const d = payload.data || {};
+  const title = d.title || "VFFT";
+  const options = {
+    body: d.body || "",
+    icon: "/icon.svg",
+    badge: "/icon.svg",
+    tag: d.tag || undefined, // collapse same-tag notifications
+    data: { href: d.href || "/" },
+  };
+  if (d.image) options.image = d.image;
+  self.registration.showNotification(title, options);
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const href = event.notification.data?.href || "/notifications";
-  event.waitUntil(self.clients.openWindow(href));
+  const href = (event.notification.data && event.notification.data.href) || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ("focus" in client) {
+          client.navigate(href);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(href);
+    }),
+  );
 });

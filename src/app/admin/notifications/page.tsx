@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea, Select, FieldError } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ImageUploader } from "@/components/admin/ImageUploader";
+import { toast } from "@/hooks/useToast";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +27,7 @@ type FormData = z.infer<typeof schema>;
 export default function AdminNotificationsPage() {
   const { data: notifications, loading } = useNotifications(20);
   const [sending, setSending] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -32,11 +35,21 @@ export default function AdminNotificationsPage() {
   });
 
   async function onSubmit(data: FormData) {
+    if (sending) return; // guard against double-submit
     setSending(true);
     try {
-      // Broadcast (no userId) → writes the in-app doc + RTDB inbox + FCM.
-      await sendNotification({ type: data.type, title: data.title, body: data.body });
+      // Broadcast (no userId) → one in-app doc for everyone + one data-only push.
+      await sendNotification({
+        type: data.type,
+        title: data.title,
+        body: data.body,
+        imageUrl: imageUrl || undefined,
+      });
       reset();
+      setImageUrl("");
+      toast({ type: "success", message: "Notification sent to all users." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to send." });
     } finally {
       setSending(false);
     }
@@ -82,10 +95,17 @@ export default function AdminNotificationsPage() {
               <Textarea {...register("body")} placeholder="Notification message" />
               <FieldError>{errors.body?.message}</FieldError>
             </div>
+            <div>
+              <Label>Image (optional)</Label>
+              <ImageUploader value={imageUrl} onChange={setImageUrl} folder="banners" />
+              <p className="mt-1 text-xs font-medium text-ink/50">
+                Shown in the in-app bell and the push notification.
+              </p>
+            </div>
             <div className="flex justify-end">
               <Button variant="yellow" type="submit" disabled={sending}>
                 <Send className="h-4 w-4" />
-                {sending ? "Sending..." : "Send"}
+                {sending ? "Sending..." : "Send to everyone"}
               </Button>
             </div>
           </form>
@@ -103,9 +123,17 @@ export default function AdminNotificationsPage() {
           {notifications.map((n) => (
             <div
               key={n.id}
-              className="flex items-start justify-between rounded-2xl border-4 border-ink bg-cream p-4 shadow-brutal-sm"
+              className="flex items-start gap-3 rounded-2xl border-4 border-ink bg-cream p-4 shadow-brutal-sm"
             >
-              <div className="flex-1">
+              {n.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={n.imageUrl}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-xl border-2 border-ink object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-sm font-bold">{n.title}</span>
                   <Badge variant={typeColors[n.type] ?? "yellow"}>{n.type}</Badge>

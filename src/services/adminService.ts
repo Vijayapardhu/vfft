@@ -49,6 +49,7 @@ export function sendNotification(input: {
   title: string;
   body: string;
   href?: string;
+  imageUrl?: string;
 }) {
   return apiPost<{ ok: true; id: string }>("/api/admin/notify", input);
 }
