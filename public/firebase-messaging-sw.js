@@ -16,21 +16,32 @@ firebase.initializeApp({
   appId: "1:825006049882:web:4be465c386ce6fe2aee663",
 });
 
+// Activate this updated worker immediately so notification changes take effect
+// on the next page load (no need to close every tab first).
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
 const messaging = firebase.messaging();
 
 // We send DATA-ONLY messages (see src/server/notify.ts), so onBackgroundMessage
 // is the ONLY thing that displays the push — exactly once, no duplicates.
+// Read from `data` first, but fall back to `notification` so older/other senders
+// still render full content (never a blank "VFFT" toast).
 messaging.onBackgroundMessage((payload) => {
   const d = payload.data || {};
-  const title = d.title || "VFFT";
+  const n = payload.notification || {};
+  const title = d.title || n.title || "VFFT";
+  const body = d.body || n.body || "";
+  const image = d.image || n.image;
   const options = {
-    body: d.body || "",
+    body,
     icon: "/icon.svg",
     badge: "/icon.svg",
-    tag: d.tag || undefined, // collapse same-tag notifications
-    data: { href: d.href || "/" },
+    tag: d.tag || "vfft",
+    renotify: true,
+    data: { href: d.href || "/notifications" },
   };
-  if (d.image) options.image = d.image;
+  if (image) options.image = image;
   self.registration.showNotification(title, options);
 });
 
