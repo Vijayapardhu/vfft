@@ -18,6 +18,7 @@ import {
 } from "@/hooks/usePlayers";
 import { useMatches } from "@/hooks/useMatches";
 import { useTeam } from "@/hooks/useTeams";
+import { useAuth } from "@/hooks/useAuth";
 
 export function PlayerProfile({ playerId }: { playerId: string }) {
   const { data: player, loading, error } = usePlayer(playerId);
@@ -25,6 +26,7 @@ export function PlayerProfile({ playerId }: { playerId: string }) {
   const { data: stats } = usePlayerSeasonStats(playerId);
   const { data: matchHistory } = usePlayerMatchHistory(playerId);
   const { data: matches } = useMatches();
+  const { isAdmin, user } = useAuth();
 
   if (loading) return <FullScreenLoader />;
   if (error)
@@ -34,7 +36,9 @@ export function PlayerProfile({ playerId }: { playerId: string }) {
         onRetry={() => window.location.reload()}
       />
     );
-  if (!player)
+  // Unapproved players are private — visible only to admins and the owner.
+  const isOwner = !!player && !!user && player.uid === user.uid;
+  if (!player || (player.status !== "approved" && !isAdmin && !isOwner))
     return (
       <EmptyState
         icon={UserRound}

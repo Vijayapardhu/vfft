@@ -56,14 +56,20 @@ export function CinematicHero() {
     "A franchise-based Free Fire league — auctions, live matches, and a permanent record of every legend.";
   const seasonName = season?.name ?? settings?.seasonName ?? "Velangi Free Fire Tournament";
 
+  // Only APPROVED players are ever surfaced publicly.
+  const approvedPlayers = useMemo(
+    () => players.filter((p) => p.status === "approved"),
+    [players],
+  );
+
   const mvpId = useMemo(() => {
     if (home?.featuredPlayerIds?.[0]) return home.featuredPlayerIds[0];
     const ranked = [...standings].sort((a, b) => b.mvpAwards - a.mvpAwards || b.kills - a.kills);
-    return ranked[0]?.playerId ?? players[0]?.id ?? null;
-  }, [home?.featuredPlayerIds, standings, players]);
+    return ranked[0]?.playerId ?? approvedPlayers[0]?.id ?? null;
+  }, [home?.featuredPlayerIds, standings, approvedPlayers]);
 
   const stats = [
-    { label: "Players", value: players.length },
+    { label: "Players", value: approvedPlayers.length },
     { label: "Franchises", value: teams.length },
     { label: "Matches", value: matches.length },
   ];

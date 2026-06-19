@@ -196,8 +196,9 @@ export default function HomePage() {
     .sort((a, b) => (b.scheduledAt?.toMillis?.() ?? 0) - (a.scheduledAt?.toMillis?.() ?? 0))
     .slice(0, 4);
 
+  const approvedPlayerCount = players.filter((p) => p.status === "approved").length;
   const overview = [
-    { label: "Players", value: players.length, bg: "bg-vblue" },
+    { label: "Players", value: approvedPlayerCount, bg: "bg-vblue" },
     { label: "Franchises", value: teams.length, bg: "bg-vgreen" },
     { label: "Matches", value: matches.length, bg: "bg-vred" },
     { label: "Honours", value: hallOfFameEntries.length, bg: "bg-vyellow" },

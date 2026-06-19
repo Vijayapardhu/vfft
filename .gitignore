@@ -53,3 +53,5 @@ yarn-error.log*
 
 # alternate verify build dir
 .next-verify
+
+.vercel
