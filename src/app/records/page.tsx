@@ -21,9 +21,6 @@ import { usePlayerStandings, useTeamStandings } from "@/hooks/useLeaderboard";
 import { usePlayers } from "@/hooks/usePlayers";
 import type { CachedPlayerStanding, CachedTeamStanding } from "@/types";
 
-export const metadata = undefined; // client component
-export const dynamic = "force-dynamic";
-
 /* ── Individual record card ──────────────────────────────────────────────── */
 
 interface RecordHero {
