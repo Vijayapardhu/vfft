@@ -164,7 +164,7 @@ export function Dashboard() {
               <StatCard label="Wins" value={teamStats.wins} icon={Shield} variant="green" />
             </div>
           ) : (
-            <Placeholder>Standings appear once results are in (Phase 3).</Placeholder>
+            <Placeholder>Standings appear once match results are recorded.</Placeholder>
           )}
         </Section>
       </div>

@@ -36,9 +36,9 @@ function usePlayerMatchStats() {
 }
 
 /**
- * Team standings derived live from `results` (SRS §14). Phase 4 will read the
- * Cloud-Function-maintained `cachedTeamStandings` for scale; deriving here keeps
- * the leaderboard functional in the meantime.
+ * Team standings derived live from `results` (SRS §14). The cached standings
+ * (`cachedTeamStandings`, written by the compute route) are used by profile
+ * pages; the live leaderboard derives here so it's always current.
  */
 export function useTeamStandings() {
   const { data: results, loading: rLoading, error } = useResults();

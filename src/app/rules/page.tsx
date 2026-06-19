@@ -1,14 +1,21 @@
 import { ScrollText } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageView } from "@/components/legal/PageView";
 
 export const metadata = { title: "Rules" };
 
 export default function RulesPage() {
   return (
-    <EmptyState
-      icon={ScrollText}
+    <PageView
+      slug="rules"
       title="Rules"
-      message="The full rulebook (auction, squad, lineup, transfers) is on the way."
+      fallback={
+        <EmptyState
+          icon={ScrollText}
+          title="Rules"
+          message="The full rulebook will appear here once an admin publishes it."
+        />
+      }
     />
   );
 }

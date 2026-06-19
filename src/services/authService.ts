@@ -13,8 +13,9 @@ import type { User } from "@/types";
  * roles only by an admin. Firestore Rules must lock the `role` field so a
  * client can never escalate its own privileges (servers decide — ADB §16).
  *
- * NOTE: For full server-authority this bootstrap should move to a Firebase
- * Auth `onCreate` Cloud Function once Functions are deployed (Phase 4).
+ * NOTE: This runs client-side on first sign-in; the locked `role` field in
+ * Firestore Rules is what guarantees server-authority (no Cloud Functions —
+ * the project runs server logic in Next.js route handlers).
  */
 export async function ensureUserDocument(
   fbUser: FirebaseUser,

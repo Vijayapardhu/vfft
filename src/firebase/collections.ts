@@ -24,6 +24,7 @@ import type {
   MatchCredentials,
   NewsArticle,
   Notification,
+  PageContent,
   Player,
   PlayerContact,
   PlayerMatchStats,
@@ -74,6 +75,7 @@ export const COLLECTIONS = {
   news: "news",
   sponsors: "sponsors",
   weapons: "weapons",
+  pages: "pages",
 } as const;
 
 /** Identity converter that preserves the document shape as <T>. */
@@ -178,3 +180,8 @@ export const weaponsCol = () =>
 
 export const weaponDoc = (id: string) =>
   typedDoc<Weapon>(COLLECTIONS.weapons, id);
+
+export const pagesCol = () => typedCollection<PageContent>(COLLECTIONS.pages);
+
+export const pageDoc = (slug: string) =>
+  typedDoc<PageContent>(COLLECTIONS.pages, slug);

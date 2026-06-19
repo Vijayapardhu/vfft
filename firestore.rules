@@ -185,6 +185,7 @@ service cloud.firestore {
     match /news/{id}                  { allow read: if true; allow write: if isAdmin(); }
     match /sponsors/{id}              { allow read: if true; allow write: if isAdmin(); }
     match /weapons/{id}               { allow read: if true; allow write: if isAdmin(); }
+    match /pages/{id}                 { allow read: if true; allow write: if isAdmin(); }
 
     // Default deny.
     match /{document=**} {

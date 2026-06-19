@@ -25,3 +25,4 @@ export * from "./sponsor";
 export * from "./marquee";
 export * from "./realtime";
 export * from "./Weapon";
+export * from "./page";

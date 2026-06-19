@@ -1,9 +1,11 @@
 import { LegalDoc, LegalSection } from "@/components/legal/LegalDoc";
+import { PageView } from "@/components/legal/PageView";
 
 export const metadata = { title: "Community Guidelines" };
 
 export default function CommunityGuidelinesPage() {
   return (
+    <PageView slug="community" title="Community Guidelines" fallback={
     <LegalDoc title="Community Guidelines" updated="June 2026">
       <p>
         VFFT is built for village gamers to enjoy a professional, friendly
@@ -46,5 +48,6 @@ export default function CommunityGuidelinesPage() {
         </p>
       </LegalSection>
     </LegalDoc>
+    } />
   );
 }

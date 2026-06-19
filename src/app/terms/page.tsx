@@ -1,9 +1,11 @@
 import { LegalDoc, LegalSection } from "@/components/legal/LegalDoc";
+import { PageView } from "@/components/legal/PageView";
 
 export const metadata = { title: "Terms of Service" };
 
 export default function TermsPage() {
   return (
+    <PageView slug="terms" title="Terms of Service" fallback={
     <LegalDoc title="Terms of Service" updated="June 2026">
       <p>
         By using VFFT you agree to these terms. They keep the tournament fair
@@ -56,5 +58,6 @@ export default function TermsPage() {
         </p>
       </LegalSection>
     </LegalDoc>
+    } />
   );
 }

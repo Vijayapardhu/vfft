@@ -1,9 +1,11 @@
 import { LegalDoc, LegalSection } from "@/components/legal/LegalDoc";
+import { PageView } from "@/components/legal/PageView";
 
 export const metadata = { title: "Privacy Policy" };
 
 export default function PrivacyPage() {
   return (
+    <PageView slug="privacy" title="Privacy Policy" fallback={
     <LegalDoc title="Privacy Policy" updated="June 2026">
       <p>
         VFFT (Velangi Free Fire Tournament) respects your privacy. This policy
@@ -62,5 +64,6 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
     </LegalDoc>
+    } />
   );
 }
