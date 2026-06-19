@@ -187,6 +187,19 @@ service cloud.firestore {
     match /weapons/{id}               { allow read: if true; allow write: if isAdmin(); }
     match /pages/{id}                 { allow read: if true; allow write: if isAdmin(); }
 
+    // ===================== Franchise Applications =====================
+    match /franchiseApplications/{id} {
+      // Applicant can read their own; admin can read all.
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.uid == request.auth.uid);
+      // Any authenticated user can submit (one per user enforced app-side).
+      allow create: if isAuthenticated()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending';
+      // Only admin can update (approve / reject).
+      allow update, delete: if isAdmin();
+    }
+
     // Default deny.
     match /{document=**} {
       allow read, write: if false;
