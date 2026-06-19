@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { isFirebaseConfigured } from "@/firebase/config";
 import { resultsByTeamQuery } from "@/services/resultService";
 import { teamSeasonStatsDoc } from "@/services/statsService";
-import { teamDoc, teamsBySeasonQuery } from "@/services/teamService";
+import { teamBySlugQuery, teamDoc, teamsBySeasonQuery } from "@/services/teamService";
 import type { Result, Team } from "@/types";
 import { useActiveSeason } from "./useActiveSeason";
 import { useCollectionData, useDocumentData } from "./useFirestore";
@@ -35,6 +35,15 @@ export function useTeamResults(teamId: string | null) {
     [teamId],
   );
   return useCollectionData<Result>(q, [teamId]);
+}
+
+/** Lookup a team by its URL slug. */
+export function useTeamBySlug(slug: string | null) {
+  const q = useMemo(
+    () => (isFirebaseConfigured && slug ? teamBySlugQuery(slug) : null),
+    [slug],
+  );
+  return useCollectionData<Team>(q, [slug]);
 }
 
 /** Season-aggregated stats for a team. */

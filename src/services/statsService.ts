@@ -16,6 +16,11 @@ export function playerMatchStatsByPlayerQuery(playerId: string) {
   return query(playerMatchStatsCol(), where("playerId", "==", playerId));
 }
 
+/** All player stat lines for a single match (kill leaderboard source). */
+export function playerMatchStatsByMatchQuery(matchId: string) {
+  return query(playerMatchStatsCol(), where("matchId", "==", matchId));
+}
+
 /** Deterministic doc id for season-scoped aggregates. */
 export const seasonStatsId = (entityId: string, seasonId: string) =>
   `${entityId}_${seasonId}`;

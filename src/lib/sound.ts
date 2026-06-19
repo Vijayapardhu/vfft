@@ -3,6 +3,30 @@
 let ctx: AudioContext | null = null;
 let muted = false;
 
+/** Decode + cache audio buffers for MP3 files played via AudioContext. */
+const mp3Cache: Record<string, AudioBuffer> = {};
+
+async function playMp3(url: string) {
+  if (muted || typeof window === "undefined") return;
+  const audio = getCtx();
+  if (!audio) return;
+  try {
+    let buffer = mp3Cache[url];
+    if (!buffer) {
+      const resp = await fetch(url);
+      const arr = await resp.arrayBuffer();
+      buffer = await audio.decodeAudioData(arr);
+      mp3Cache[url] = buffer;
+    }
+    const src = audio.createBufferSource();
+    src.buffer = buffer;
+    src.connect(audio.destination);
+    src.start();
+  } catch {
+    // ignore – autoplay blocked or file missing
+  }
+}
+
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!ctx) {
@@ -125,10 +149,12 @@ export const sound = {
     vibrate([100, 80, 100, 80, 300]);
   },
 
+  /** Trumpet fanfare — new player enters the auction block. */
+  fanfare: () => { void playMp3("/sounds/fanfare.mp3"); },
+
   /** Descending disappointment — auction unsold. */
   unsold: () => {
-    tone(500, 600, 0.25, "sine", 200);
-    setTimeout(() => tone(250, 200, 0.15, "sine", 150), 400);
+    void playMp3("/sounds/fail-trumpet.mp3");
     vibrate([50, 100, 60]);
   },
 

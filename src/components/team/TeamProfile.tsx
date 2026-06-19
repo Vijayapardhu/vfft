@@ -1,12 +1,12 @@
 "use client";
 
 import { Coins, Shield, Skull, Swords, Trophy, Users } from "lucide-react";
+import Image from "next/image";
 import { useMemo } from "react";
 import { MatchCard } from "@/components/cards/MatchCard";
 import { PlayerCard, PlayerCardSkeleton } from "@/components/cards/PlayerCard";
 import { StatCard } from "@/components/cards/StatCard";
 import { TeamPerformanceChart } from "@/components/charts/TeamPerformanceChart";
-import { TeamBanner } from "@/components/team/TeamBanner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { FullScreenLoader } from "@/components/ui/spinner";
@@ -100,9 +100,67 @@ export function TeamProfile({ teamId }: { teamId: string }) {
     </div>
   );
 
+  const brand = team.primaryColor ?? "#4f46e5";
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <TeamBanner team={team} />
+      {/* ── Cinematic hero ──────────────────────────────────────────── */}
+      <div
+        className="relative overflow-hidden rounded-3xl border-4 border-ink shadow-brutal-lg"
+        style={{ minHeight: 320, background: brand }}
+      >
+        {team.bannerUrl && (
+          <Image
+            src={team.bannerUrl}
+            alt=""
+            fill
+            className="pointer-events-none object-cover opacity-25"
+            sizes="100vw"
+            priority
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-ink/10 via-transparent to-ink/80" />
+        <div className="relative flex h-full flex-col justify-end px-6 pb-6 pt-28 sm:px-8">
+          {/* Logo */}
+          <div className="relative mb-4 h-24 w-24 overflow-hidden rounded-2xl border-4 border-ink bg-cream shadow-brutal">
+            {team.logoUrl ? (
+              <Image src={team.logoUrl} alt={team.name} fill className="object-cover" sizes="96px" />
+            ) : (
+              <div className="grid h-full place-items-center">
+                <Shield className="h-10 w-10 text-ink/40" />
+              </div>
+            )}
+          </div>
+          {/* Name & slogan */}
+          <h1 className="text-4xl font-bold leading-tight text-white drop-shadow-lg sm:text-5xl">
+            {team.name}
+          </h1>
+          {team.slogan && (
+            <p className="mt-1.5 italic text-white/65">&ldquo;{team.slogan}&rdquo;</p>
+          )}
+          {/* Stat chips */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              { label: "Points", value: String(stats?.points ?? "—") },
+              { label: "Wins", value: String(stats?.wins ?? "—") },
+              { label: "Kills", value: String(stats?.kills ?? "—") },
+              { label: "Squad", value: `${team.squad?.length ?? 0}/${MAX_SQUAD_SIZE}` },
+              ...(team.shortName ? [{ label: "Tag", value: team.shortName }] : []),
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex flex-col rounded-xl border-2 border-white/25 bg-white/10 px-3 py-1.5 backdrop-blur-sm"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">
+                  {label}
+                </span>
+                <span className="text-sm font-bold text-white">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="mt-6">
         <Tabs
           tabs={[

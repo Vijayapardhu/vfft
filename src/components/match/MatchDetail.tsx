@@ -12,7 +12,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { FullScreenLoader } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/useAuth";
 import { formatMatchTime } from "@/lib/format";
-import { useMatch, useMatchLineups, useMatchResults } from "@/hooks/useMatches";
+import { useMatch, useMatchLineups, useMatchPlayerStats, useMatchResults } from "@/hooks/useMatches";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useTeam } from "@/hooks/useTeams";
 import { reviewLineup } from "@/services/lineupService";
@@ -41,6 +41,7 @@ export function MatchDetail({ matchId }: { matchId: string }) {
   const { data: team2 } = useTeam(match?.team2Id ?? null);
   const { data: results } = useMatchResults(matchId);
   const { data: lineups } = useMatchLineups(matchId);
+  const { data: playerStats } = useMatchPlayerStats(matchId);
   const { data: players } = usePlayers();
   const { isAdmin } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -77,37 +78,87 @@ export function MatchDetail({ matchId }: { matchId: string }) {
   const lineupFor = (teamId: string): WithId<Lineup> | undefined =>
     lineups.find((l) => l.teamId === teamId);
 
+  const score1 = resultFor(match.team1Id)?.totalPoints ?? 0;
+  const score2 = resultFor(match.team2Id)?.totalPoints ?? 0;
+  const isCompleted = match.status === "completed";
+  const winner1 = isCompleted && score1 > score2;
+  const winner2 = isCompleted && score2 > score1;
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      {/* Header */}
-      <div className="rounded-3xl border-4 border-ink bg-cream p-5 shadow-brutal-md">
-        <div className="mb-4 flex items-center justify-between">
-          <Badge variant="cream">Match {match.matchNumber}</Badge>
-          <Badge variant={match.status === "completed" ? "green" : match.status === "live" ? "red" : "blue"}>
-            {match.status}
-          </Badge>
-        </div>
-        <div className="flex items-center gap-3">
-          <TeamCrest team={team1} label="Team 1" />
-          <div className="flex flex-col items-center">
-            {match.status === "completed" ? (
-              <div className="flex items-center gap-2 text-3xl font-bold">
-                <span>{resultFor(match.team1Id)?.totalPoints ?? 0}</span>
-                <span className="text-ink/40">-</span>
-                <span>{resultFor(match.team2Id)?.totalPoints ?? 0}</span>
-              </div>
-            ) : (
-              <span className="text-2xl font-bold text-ink/40">VS</span>
-            )}
+      {/* ── Scoreboard header ───────────────────────────────────────── */}
+      <div className="overflow-hidden rounded-3xl border-4 border-ink shadow-brutal-lg">
+        {/* Ink background VS section */}
+        <div className="bg-ink px-4 py-6 sm:px-8">
+          <div className="mb-5 flex items-center justify-between">
+            <Badge variant="cream">Match {match.matchNumber}</Badge>
+            <Badge variant={isCompleted ? "green" : match.status === "live" ? "red" : "blue"}>
+              {match.status}
+            </Badge>
           </div>
-          <TeamCrest team={team2} label="Team 2" />
+
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            {/* Team 1 */}
+            <div className={`flex flex-col items-center gap-2 transition-opacity ${winner2 ? "opacity-40" : ""}`}>
+              <div className={`relative grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 bg-cream shadow-brutal-xs ${winner1 ? "border-vyellow" : "border-white/30"}`}>
+                {team1?.logoUrl ? (
+                  <Image src={team1.logoUrl} alt={team1.name} fill className="object-cover" sizes="80px" />
+                ) : (
+                  <Shield className="h-8 w-8 text-ink/40" />
+                )}
+              </div>
+              <span className="text-center text-sm font-bold uppercase text-white">
+                {team1?.name ?? "Team 1"}
+              </span>
+              {winner1 && (
+                <span className="text-xs font-bold uppercase tracking-widest text-vyellow">Winner</span>
+              )}
+            </div>
+
+            {/* Score / VS */}
+            <div className="flex flex-col items-center gap-1 px-2 sm:px-4">
+              {isCompleted ? (
+                <>
+                  <div className="flex items-baseline gap-3 text-5xl font-bold text-white leading-none sm:text-6xl">
+                    <span className={winner1 ? "text-vyellow" : ""}>{score1}</span>
+                    <span className="text-2xl text-white/20">·</span>
+                    <span className={winner2 ? "text-vyellow" : ""}>{score2}</span>
+                  </div>
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-widest text-white/30">
+                    Final
+                  </span>
+                </>
+              ) : (
+                <span className="text-3xl font-bold text-white/30">VS</span>
+              )}
+            </div>
+
+            {/* Team 2 */}
+            <div className={`flex flex-col items-center gap-2 transition-opacity ${winner1 ? "opacity-40" : ""}`}>
+              <div className={`relative grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 bg-cream shadow-brutal-xs ${winner2 ? "border-vyellow" : "border-white/30"}`}>
+                {team2?.logoUrl ? (
+                  <Image src={team2.logoUrl} alt={team2.name} fill className="object-cover" sizes="80px" />
+                ) : (
+                  <Shield className="h-8 w-8 text-ink/40" />
+                )}
+              </div>
+              <span className="text-center text-sm font-bold uppercase text-white">
+                {team2?.name ?? "Team 2"}
+              </span>
+              {winner2 && (
+                <span className="text-xs font-bold uppercase tracking-widest text-vyellow">Winner</span>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm font-bold text-ink/60">
-          <span className="inline-flex items-center gap-1">
-            <MapPin className="h-4 w-4" /> {match.map || "Map TBD"}
+
+        {/* Map + meta bar */}
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 bg-ink/90 px-4 py-3 text-xs font-bold uppercase tracking-wide text-white/40">
+          <span className="flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" /> {match.map || "Map TBD"}
           </span>
           <span>{formatMatchTime(match.scheduledAt)}</span>
-          <span className="uppercase">{match.stage}</span>
+          <span>{match.stage}</span>
         </div>
       </div>
 
@@ -117,7 +168,58 @@ export function MatchDetail({ matchId }: { matchId: string }) {
       {/* Captain actions — substitution request + raise dispute */}
       <MatchTeamActions match={match} />
 
-      {/* Per-team lineups + results */}
+      {/* ── Kill Leaderboard (only after stats are entered) ──────── */}
+      {playerStats.length > 0 && (
+        <div className="overflow-hidden rounded-3xl border-4 border-ink shadow-brutal-md">
+          <div className="bg-ink px-5 py-3">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-cream/70">
+              Kill Leaderboard
+            </h2>
+          </div>
+          <div className="divide-y-4 divide-ink bg-cream">
+            {[...playerStats]
+              .sort((a, b) => b.kills - a.kills || b.headshots - a.headshots)
+              .map((s, idx) => (
+                <div
+                  key={s.id}
+                  className={`grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3 ${s.mvp ? "bg-vyellow/20" : ""}`}
+                >
+                  {/* Rank */}
+                  <span
+                    className={`min-w-[28px] text-center text-sm font-bold ${idx === 0 ? "text-vyellow" : "text-ink/30"}`}
+                  >
+                    #{idx + 1}
+                  </span>
+                  {/* Name + team */}
+                  <div>
+                    <p className="font-bold">{ignById.get(s.playerId) ?? "Player"}</p>
+                    <p className="text-xs font-bold text-ink/40 uppercase">
+                      {s.teamId === match.team1Id ? team1?.name : team2?.name}
+                    </p>
+                  </div>
+                  {/* Stats + MVP */}
+                  <div className="flex items-center gap-3 text-right text-sm font-bold">
+                    <span>
+                      <span className="text-ink/40 text-xs mr-0.5">K</span>
+                      {s.kills}
+                    </span>
+                    <span>
+                      <span className="text-ink/40 text-xs mr-0.5">HS</span>
+                      {s.headshots}
+                    </span>
+                    <span className="hidden sm:inline">
+                      <span className="text-ink/40 text-xs mr-0.5">DMG</span>
+                      {s.damage}
+                    </span>
+                    {s.mvp && <Badge variant="yellow">MVP</Badge>}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Per-team lineups + results ────────────────────────────── */}
       <div className="grid gap-5 sm:grid-cols-2">
         {[
           { team: team1, id: match.team1Id, fallback: "Team 1" },
@@ -131,9 +233,18 @@ export function MatchDetail({ matchId }: { matchId: string }) {
 
               {result && (
                 <div className="mb-3 grid grid-cols-3 gap-2 text-center">
-                  <div><div className="text-xl font-bold">{result.kills}</div><div className="text-[10px] font-bold uppercase text-ink/50">Kills</div></div>
-                  <div><div className="text-xl font-bold">{result.placementPoints}</div><div className="text-[10px] font-bold uppercase text-ink/50">Place</div></div>
-                  <div><div className="text-xl font-bold">{result.totalPoints}</div><div className="text-[10px] font-bold uppercase text-ink/50">Total</div></div>
+                  <div>
+                    <div className="text-xl font-bold">{result.kills}</div>
+                    <div className="text-[10px] font-bold uppercase text-ink/50">Kills</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold">{result.placementPoints}</div>
+                    <div className="text-[10px] font-bold uppercase text-ink/50">Place</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold">{result.totalPoints}</div>
+                    <div className="text-[10px] font-bold uppercase text-ink/50">Total</div>
+                  </div>
                 </div>
               )}
 
@@ -159,8 +270,10 @@ export function MatchDetail({ matchId }: { matchId: string }) {
                     {lineup.playingFour.map((pid) => (
                       <li key={pid} className="flex items-center justify-between">
                         <span>{ignById.get(pid) ?? "Player"}</span>
-                        {pid === lineup.captainId && <Badge variant="red">C</Badge>}
-                        {pid === lineup.viceCaptainId && <Badge variant="blue">VC</Badge>}
+                        <div className="flex gap-1">
+                          {pid === lineup.captainId && <Badge variant="red">C</Badge>}
+                          {pid === lineup.viceCaptainId && <Badge variant="blue">VC</Badge>}
+                        </div>
                       </li>
                     ))}
                   </ul>

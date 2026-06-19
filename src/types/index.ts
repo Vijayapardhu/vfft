@@ -26,3 +26,4 @@ export * from "./marquee";
 export * from "./realtime";
 export * from "./Weapon";
 export * from "./page";
+export * from "./FranchiseApplication";

@@ -45,6 +45,7 @@ export function AuctionRoom() {
   const expiredRef = useRef<Record<string, number>>({});
   const beepRef = useRef<number>(-1);
   const soldRef = useRef<string | null>(null);
+  const activeRef = useRef<string | null>(null);
   const prevBidRef = useRef<number | null>(null);
 
   const auctionId = auction?.auctionId ?? null;
@@ -102,6 +103,14 @@ export function AuctionRoom() {
     const id = setInterval(update, 200);
     return () => clearInterval(id);
   }, [auctionId, status, endsAt]);
+
+  // Fanfare when a new player enters the auction block.
+  useEffect(() => {
+    if (auctionId && status === "active" && activeRef.current !== auctionId) {
+      activeRef.current = auctionId;
+      sound.fanfare();
+    }
+  }, [auctionId, status]);
 
   // Dramatic gavel "SOLD" sound + unsound effect on close.
   useEffect(() => {

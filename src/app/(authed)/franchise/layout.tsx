@@ -1,6 +1,6 @@
 import { FranchiseShell } from "@/components/franchise/FranchiseShell";
 
-export const metadata = { title: "My Franchise" };
+export const metadata = { title: "Franchise HQ" };
 
 export default function FranchiseLayout({
   children,

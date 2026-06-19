@@ -76,6 +76,7 @@ export const COLLECTIONS = {
   sponsors: "sponsors",
   weapons: "weapons",
   pages: "pages",
+  franchiseApplications: "franchiseApplications",
 } as const;
 
 /** Identity converter that preserves the document shape as <T>. */

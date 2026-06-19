@@ -6,9 +6,11 @@ import {
   Newspaper,
   ScrollText,
   Shield,
+  Sparkles,
   Swords,
   Trophy,
   Users,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { AUCTION_ROUTE, ROUTES } from "./routes";
@@ -27,6 +29,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: "Players", href: ROUTES.players, icon: Users },
   { label: "Auction", href: AUCTION_ROUTE, icon: Gavel },
   { label: "Ranks", href: ROUTES.leaderboard, icon: Trophy },
+  { label: "Records", href: ROUTES.records, icon: Zap },
   { label: "Hall of Fame", href: ROUTES.hallOfFame, icon: Crown },
   { label: "News", href: ROUTES.news, icon: Newspaper },
   { label: "Rules", href: ROUTES.rules, icon: ScrollText },
@@ -45,6 +48,8 @@ export const MOBILE_MORE_NAV: NavItem[] = [
   { label: "Players", href: ROUTES.players, icon: Users },
   { label: "Auction", href: AUCTION_ROUTE, icon: Gavel },
   { label: "Hall of Fame", href: ROUTES.hallOfFame, icon: Crown },
+  { label: "Records", href: ROUTES.records, icon: Zap },
+  { label: "Story Card", href: ROUTES.storyGenerator, icon: Sparkles },
   { label: "News", href: ROUTES.news, icon: Newspaper },
   { label: "Rules", href: ROUTES.rules, icon: ScrollText },
   { label: "About", href: ROUTES.about, icon: Info },

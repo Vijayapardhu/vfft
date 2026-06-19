@@ -105,6 +105,11 @@
   0% { transform: translateX(-150%) skewX(-12deg); }
   100% { transform: translateX(250%) skewX(-12deg); }
 }
+/* Holographic shimmer for Mythic player cards */
+@keyframes holo-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
 
 @layer utilities {
   /* Smooth-scroll (Lenis) baseline */
@@ -171,6 +176,29 @@
 
   .animate-marquee { animation: vfft-marquee 36s linear infinite; }
   .animate-drift { animation: vfft-drift 7s ease-in-out infinite; }
+
+  /* Mythic / holographic card shimmer (player card rarity FX) */
+  .holo-shimmer {
+    background: linear-gradient(
+      115deg,
+      #ff006620 0%,
+      #a855f740 15%,
+      #3b82f640 30%,
+      #22c55e40 45%,
+      #eab30840 60%,
+      #ef444440 75%,
+      #a855f740 90%,
+      #ff006620 100%
+    );
+    background-size: 300% 300%;
+    animation: holo-shift 4s ease-in-out infinite;
+  }
+  .legendary-glow {
+    box-shadow: 0 0 24px 4px rgba(255, 107, 107, 0.5), 6px 6px 0 0 #000;
+  }
+  .mythic-glow {
+    box-shadow: 0 0 28px 6px rgba(168, 85, 247, 0.55), 6px 6px 0 0 #000;
+  }
 }
 
 /* Accessibility — respect prefers-reduced-motion (TRD §28, UID §30).

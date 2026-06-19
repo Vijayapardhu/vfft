@@ -25,6 +25,22 @@ export interface Team extends Timestamps {
   /** Optional franchise brand colors (hex). */
   primaryColor?: string;
   secondaryColor?: string;
+  accentColor?: string;
+
+  /** Franchise identity fields. */
+  slogan?: string;
+  shortName?: string;
+  description?: string;
+
+  /** Social links. */
+  socialLinks?: {
+    instagram?: string;
+    youtube?: string;
+    discord?: string;
+  };
 
   transfersUsed?: number;
+
+  /** URL-safe identifier for public team page. Generated from name on creation. */
+  slug?: string;
 }

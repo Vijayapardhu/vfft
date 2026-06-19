@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, Crown, Crosshair, Megaphone, Shield, Skull, Star, Swords, Trophy, ArrowRight, Zap } from "lucide-react";
+import { Award, Building2, Crown, Crosshair, Megaphone, Shield, Skull, Star, Swords, Trophy, ArrowRight, Zap } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { MatchCard } from "@/components/cards/MatchCard";
@@ -88,20 +88,50 @@ export function Dashboard() {
       {/* Admin-managed banner carousel */}
       <BannerCarousel />
 
+      {/* Franchise owner CTA */}
+      {(user?.role === "franchiseOwner" || user?.role === "admin") && (
+        <Link
+          href={ROUTES.franchise}
+          className="block rounded-3xl border-4 border-ink bg-ink p-5 shadow-brutal-md transition-transform hover:-translate-y-0.5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Building2 className="h-5 w-5 text-vyellow" />
+                <span className="text-xs font-bold uppercase tracking-widest text-vyellow">Franchise Owner</span>
+              </div>
+              <h2 className="text-2xl text-cream">Go to Franchise HQ →</h2>
+              <p className="mt-0.5 text-sm font-medium text-cream/60">
+                Manage your team, brand, squad, and auction room.
+              </p>
+            </div>
+            <Shield className="h-10 w-10 shrink-0 text-cream/20" />
+          </div>
+        </Link>
+      )}
+
       {/* Not registered yet */}
-      {!player && (
+      {!player && user?.role !== "franchiseOwner" && (
         <div className="rounded-3xl border-4 border-ink bg-vyellow p-6 shadow-brutal-md">
           <h2 className="text-2xl">Join the league</h2>
           <p className="mt-1 font-medium text-ink/70">
             Register as a player to enter the auction pool and get drafted by a
             franchise.
           </p>
-          <Link
-            href={ROUTES.register}
-            className={cn(buttonVariants({ variant: "ink", size: "lg" }), "mt-4")}
-          >
-            Register Now
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href={ROUTES.register}
+              className={cn(buttonVariants({ variant: "ink", size: "lg" }))}
+            >
+              Register as Player
+            </Link>
+            <Link
+              href={ROUTES.becomeFranchise}
+              className={cn(buttonVariants({ variant: "cream", size: "lg" }))}
+            >
+              Own a Franchise →
+            </Link>
+          </div>
         </div>
       )}
 

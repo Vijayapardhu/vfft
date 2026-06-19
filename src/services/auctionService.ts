@@ -37,6 +37,11 @@ export function finalizeAuction(auctionId: string) {
   );
 }
 
+/** Admin: wipe the live auction board (RTDB auction/current → null). */
+export function clearAuctionBoard() {
+  return apiPost<{ ok: true }>("/api/auction/clear", {});
+}
+
 /**
  * Fire-and-forget: ask the server to close an expired lot. The server only
  * settles once `endsAt` has passed (and is idempotent), so it's safe for any

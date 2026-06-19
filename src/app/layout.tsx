@@ -22,6 +22,12 @@ export const metadata: Metadata = {
     "Where Village Legends Rise. A franchise-based, IPL-style Free Fire esports platform.",
   applicationName: "VFFT",
   keywords: ["Free Fire", "esports", "VFFT", "Velangi", "tournament", "franchise"],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "VFFT",
+  },
   openGraph: {
     type: "website",
     siteName: "VFFT",

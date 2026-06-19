@@ -53,53 +53,86 @@ export function PlayerProfile({ playerId }: { playerId: string }) {
     (a, b) => (matchNumberOf(b.matchId) ?? 0) - (matchNumberOf(a.matchId) ?? 0),
   );
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      {/* Hero */}
-      <div className="flex flex-col gap-5 rounded-3xl border-4 border-ink bg-cream p-5 shadow-brutal-md sm:flex-row sm:items-center">
-        <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-4 border-ink bg-vpurple/40 sm:h-40 sm:w-40">
-          {player.photoURL ? (
-            <Image
-              src={player.photoURL}
-              alt={player.ign}
-              fill
-              className="object-cover"
-              sizes="160px"
-            />
-          ) : (
-            <div className="grid h-full place-items-center">
-              <UserRound className="h-20 w-20 text-ink/30" />
-            </div>
-          )}
-        </div>
+  const brand = team?.primaryColor ?? "#6d28d9";
 
-        <div className="flex flex-1 flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="purple">{PLAYER_ROLE_LABELS[player.role]}</Badge>
-            {player.status !== "approved" && (
-              <Badge variant="yellow">{player.status}</Badge>
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-8 space-y-8">
+      {/* ── Cinematic hero ──────────────────────────────────────────── */}
+      <div
+        className="relative overflow-hidden rounded-3xl border-4 border-ink shadow-brutal-lg"
+        style={{ background: brand }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-ink/40" />
+        <div className="relative flex flex-col gap-6 p-6 sm:flex-row sm:items-end">
+          {/* Photo — large */}
+          <div className="relative aspect-square w-full overflow-hidden rounded-2xl border-4 border-white/20 shadow-brutal sm:h-56 sm:w-44 sm:shrink-0">
+            {player.photoURL ? (
+              <Image
+                src={player.photoURL}
+                alt={player.ign}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, 176px"
+                priority
+              />
+            ) : (
+              <div className="grid h-full place-items-center bg-white/10">
+                <UserRound className="h-20 w-20 text-white/30" />
+              </div>
             )}
           </div>
-          <h1 className="text-4xl">{player.ign}</h1>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-bold">
-            <span className="text-ink/60">
-              Team:{" "}
+
+          {/* Info */}
+          <div className="flex flex-1 flex-col gap-3 sm:pb-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="purple">{PLAYER_ROLE_LABELS[player.role]}</Badge>
+              {player.status !== "approved" && (
+                <Badge variant="yellow">{player.status}</Badge>
+              )}
+            </div>
+            <h1 className="text-5xl font-bold leading-none text-white drop-shadow-lg">
+              {player.ign}
+            </h1>
+            <div className="flex flex-wrap items-center gap-3 text-sm font-bold">
               {team ? (
-                <Link href={ROUTES.team(team.id)} className="text-ink underline">
+                <Link
+                  href={ROUTES.team(team.id)}
+                  className="text-white/80 underline hover:text-white"
+                >
                   {team.name}
                 </Link>
               ) : (
-                <span className="text-ink/40">Auction pool</span>
+                <span className="text-white/40">Auction pool</span>
               )}
-            </span>
-            {typeof player.soldPrice === "number" && (
-              <span className="text-vred">
-                {player.soldPrice.toLocaleString()} coins
-              </span>
-            )}
-            {player.device && (
-              <span className="text-ink/60">Device: {player.device}</span>
-            )}
+              {player.device && (
+                <span className="text-white/50">{player.device}</span>
+              )}
+              {typeof player.soldPrice === "number" && (
+                <span className="rounded-lg border border-vyellow/40 bg-vyellow/20 px-2 py-0.5 text-xs text-vyellow">
+                  {player.soldPrice.toLocaleString()} coins
+                </span>
+              )}
+            </div>
+
+            {/* Stat chips */}
+            <div className="mt-1 flex flex-wrap gap-2">
+              {[
+                { label: "Kills", value: stats?.kills ?? 0 },
+                { label: "Headshots", value: stats?.headshots ?? 0 },
+                { label: "MVP", value: stats?.mvpAwards ?? 0 },
+                { label: "Matches", value: stats?.matchesPlayed ?? 0 },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="flex flex-col rounded-xl border-2 border-white/20 bg-white/10 px-3 py-1.5 backdrop-blur-sm"
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/50">
+                    {label}
+                  </span>
+                  <span className="text-lg font-bold text-white">{value}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -108,39 +141,53 @@ export function PlayerProfile({ playerId }: { playerId: string }) {
       <MasteryDisplay player={player} />
 
       {/* Season stats */}
-      <h2 className="mb-3 mt-8 text-2xl">Season Stats</h2>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Matches" value={stats?.matchesPlayed ?? 0} icon={Swords} variant="blue" />
-        <StatCard label="Kills" value={stats?.kills ?? 0} icon={Skull} variant="red" />
-        <StatCard label="Headshots" value={stats?.headshots ?? 0} icon={Crosshair} variant="green" />
-        <StatCard label="MVP" value={stats?.mvpAwards ?? 0} icon={Star} variant="yellow" />
-      </div>
+      <section>
+        <h2 className="mb-4 text-2xl font-bold">Season Stats</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatCard label="Matches" value={stats?.matchesPlayed ?? 0} icon={Swords} variant="blue" />
+          <StatCard label="Kills" value={stats?.kills ?? 0} icon={Skull} variant="red" />
+          <StatCard label="Headshots" value={stats?.headshots ?? 0} icon={Crosshair} variant="green" />
+          <StatCard label="MVP" value={stats?.mvpAwards ?? 0} icon={Star} variant="yellow" />
+        </div>
+      </section>
 
-      <h2 className="mb-3 mt-8 text-2xl">Match History</h2>
-      {history.length === 0 ? (
-        <div className="rounded-3xl border-4 border-dashed border-ink/30 p-8 text-center font-medium text-ink/50">
-          No matches played yet.
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {history.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between rounded-2xl border-4 border-ink bg-cream px-4 py-3 shadow-brutal-sm"
-            >
-              <span className="font-bold uppercase">
-                Match {matchNumberOf(s.matchId) ?? "—"}
-              </span>
-              <div className="flex items-center gap-4 text-sm font-bold">
-                <span>{s.kills} K</span>
-                <span>{s.headshots} HS</span>
-                <span>{s.damage} DMG</span>
-                {s.mvp && <Badge variant="yellow">MVP</Badge>}
-              </div>
+      {/* Match history */}
+      <section>
+        <h2 className="mb-4 text-2xl font-bold">Match History</h2>
+        {history.length === 0 ? (
+          <div className="rounded-3xl border-4 border-dashed border-ink/30 p-8 text-center font-medium text-ink/50">
+            No matches played yet.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border-4 border-ink shadow-brutal-sm">
+            <div className="grid grid-cols-[1fr_auto] gap-3 bg-ink px-4 py-2 text-xs font-bold uppercase tracking-wider text-cream/50 sm:grid-cols-[auto_1fr_auto]">
+              <span className="hidden sm:block">Match</span>
+              <span>Performance</span>
+              <span>Badges</span>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="divide-y-4 divide-ink bg-cream">
+              {history.map((s) => (
+                <div
+                  key={s.id}
+                  className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 sm:grid-cols-[auto_1fr_auto]"
+                >
+                  <span className="hidden sm:block font-bold text-ink/50 uppercase text-sm">
+                    #{matchNumberOf(s.matchId) ?? "—"}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-bold">
+                    <span><span className="text-ink/40 mr-1 text-xs">K</span>{s.kills}</span>
+                    <span><span className="text-ink/40 mr-1 text-xs">HS</span>{s.headshots}</span>
+                    <span><span className="text-ink/40 mr-1 text-xs">DMG</span>{s.damage}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {s.mvp && <Badge variant="yellow">MVP</Badge>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

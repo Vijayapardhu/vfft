@@ -9,7 +9,8 @@ import {
   matchesBySeasonQuery,
   resultsByMatchQuery,
 } from "@/services/matchService";
-import type { Lineup, Match, MatchCredentials, Result } from "@/types";
+import { playerMatchStatsByMatchQuery } from "@/services/statsService";
+import type { Lineup, Match, MatchCredentials, PlayerMatchStats, Result } from "@/types";
 import { useActiveSeason } from "./useActiveSeason";
 import { useCollectionData, useDocumentData } from "./useFirestore";
 
@@ -60,6 +61,18 @@ export function useMatchCredentials(matchId: string | null) {
     [matchId],
   );
   return useDocumentData<MatchCredentials>(ref, [matchId]);
+}
+
+/** Per-player performance stats for a single match (kill leaderboard). */
+export function useMatchPlayerStats(matchId: string | null) {
+  const q = useMemo(
+    () =>
+      isFirebaseConfigured && matchId
+        ? playerMatchStatsByMatchQuery(matchId)
+        : null,
+    [matchId],
+  );
+  return useCollectionData<PlayerMatchStats>(q, [matchId]);
 }
 
 /** A single team's lineup for a match (lineups/{matchId}_{teamId}). */

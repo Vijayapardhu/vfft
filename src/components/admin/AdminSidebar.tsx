@@ -43,6 +43,7 @@ const sections: SidebarSection[] = [
       { label: "Dashboard", href: "/admin", icon: <BarChart3 className="h-4 w-4" /> },
       { label: "Players", href: "/admin/players", icon: <Users className="h-4 w-4" /> },
       { label: "Teams", href: "/admin/teams", icon: <Swords className="h-4 w-4" /> },
+      { label: "Franchise Apps", href: "/admin/franchise-applications", icon: <BookUser className="h-4 w-4" /> },
       { label: "Auction", href: "/admin/auction", icon: <Gavel className="h-4 w-4" /> },
       { label: "Matches", href: "/admin/matches", icon: <Gamepad2 className="h-4 w-4" /> },
       { label: "Results", href: "/admin/results", icon: <ClipboardList className="h-4 w-4" /> },

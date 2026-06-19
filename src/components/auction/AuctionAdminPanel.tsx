@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { collection, limit, orderBy, query, where } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
 import { AUCTION_COUNTDOWN_SECONDS } from "@/constants/app";
+import { db } from "@/firebase/firestore";
+import { COLLECTIONS } from "@/firebase/collections";
 import { useActiveSeason } from "@/hooks/useActiveSeason";
+import { useCollectionData } from "@/hooks/useFirestore";
 import { usePlayers } from "@/hooks/usePlayers";
 import {
+  clearAuctionBoard,
   finalizeAuction,
   hammerAuction,
   startAuction,
@@ -30,6 +35,21 @@ export function AuctionAdminPanel({
 
   const activeAuction = auction?.status === "active" ? auction : null;
   const available = players.filter((p) => p.status === "approved" && !p.teamId);
+
+  const unsoldQuery = useMemo(
+    () =>
+      seasonId
+        ? query(
+            collection(db, COLLECTIONS.auctions),
+            where("seasonId", "==", seasonId),
+            where("status", "==", "unsold"),
+            orderBy("updatedAt", "desc"),
+            limit(30),
+          )
+        : null,
+    [seasonId],
+  );
+  const { data: unsoldAuctions } = useCollectionData(unsoldQuery, [seasonId]);
 
   async function run(fn: () => Promise<unknown>) {
     setError(null);
@@ -73,27 +93,36 @@ export function AuctionAdminPanel({
       ) : (
         <div className="space-y-3">
           {auction?.status === "unsold" && (
-            <div className="rounded-2xl border-2 border-ink bg-vred/20 p-3">
-              <p className="mb-2 text-sm font-bold">
-                {auction.playerIgn} went unsold — back in the pool.
+            <div className="rounded-2xl border-2 border-vred bg-vred/10 p-3">
+              <p className="mb-3 text-sm font-bold text-vred">
+                ❌ {auction.playerIgn} went unsold — back in the pool.
               </p>
-              <Button
-                variant="yellow"
-                disabled={busy || !seasonId}
-                onClick={() =>
-                  run(() =>
-                    startAuction({
-                      playerId: auction.playerId,
-                      seasonId: seasonId as string,
-                      basePrice: auction.basePrice,
-                      mode: "timed",
-                      durationSeconds: AUCTION_COUNTDOWN_SECONDS,
-                    }),
-                  )
-                }
-              >
-                Re-auction {auction.playerIgn}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="yellow"
+                  disabled={busy || !seasonId}
+                  onClick={() =>
+                    run(() =>
+                      startAuction({
+                        playerId: auction.playerId,
+                        seasonId: seasonId as string,
+                        basePrice: auction.basePrice,
+                        mode: "timed",
+                        durationSeconds: AUCTION_COUNTDOWN_SECONDS,
+                      }),
+                    )
+                  }
+                >
+                  Re-auction {auction.playerIgn}
+                </Button>
+                <Button
+                  variant="cream"
+                  disabled={busy}
+                  onClick={() => run(() => clearAuctionBoard())}
+                >
+                  Clear Board → Next Player
+                </Button>
+              </div>
             </div>
           )}
           {!seasonId && (
@@ -174,6 +203,31 @@ export function AuctionAdminPanel({
       )}
 
       {error && <p className="mt-3 text-sm font-bold text-vred">{error}</p>}
+
+      {unsoldAuctions.length > 0 && (
+        <div className="mt-5 border-t-2 border-dashed border-ink/20 pt-4">
+          <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-ink/60">
+            Unsold Players ({unsoldAuctions.length})
+          </h3>
+          <div className="space-y-1.5">
+            {unsoldAuctions.map((a) => {
+              const data = a as unknown as { playerId: string; basePrice: number };
+              const p = players.find((pl) => pl.id === data.playerId);
+              return (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between rounded-xl border-2 border-vred/30 bg-vred/5 px-3 py-2"
+                >
+                  <span className="font-bold">{p?.ign ?? "Unknown"}</span>
+                  <span className="text-xs font-bold text-ink/50">
+                    base {data.basePrice}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

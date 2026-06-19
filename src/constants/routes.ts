@@ -37,7 +37,12 @@ export const ROUTES = {
   teamHistory: "/team/history",
 
   // --- Franchise owner ---
+  becomeFranchise: "/become-franchise",
   franchise: "/franchise",
+  franchiseBrand: "/franchise/brand",
+  franchiseSquad: "/franchise/squad",
+  franchiseMatches: "/franchise/matches",
+  franchiseSettings: "/franchise/settings",
   franchisePlayers: "/franchise/players",
   franchiseStatistics: "/franchise/statistics",
   franchiseHistory: "/franchise/history",
@@ -55,6 +60,12 @@ export const ROUTES = {
   adminNotifications: "/admin/notifications",
   adminDisputes: "/admin/disputes",
   adminHallOfFame: "/admin/hall-of-fame",
+  adminFranchiseApplications: "/admin/franchise-applications",
+
+  // --- Community ---
+  records: "/records",
+  heroes: "/heroes",
+  storyGenerator: "/story-generator",
 } as const;
 
 /** Public auction page (flagship spectator view, UID §15). */

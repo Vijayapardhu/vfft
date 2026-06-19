@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Crown, Shield, Zap } from "lucide-react";
 import { CinematicHero } from "@/components/home/CinematicHero";
 import { BannerCarousel } from "@/components/home/BannerCarousel";
+import { TodayHeroes } from "@/components/home/TodayHeroes";
 import { VersusMatch } from "@/components/home/VersusMatch";
 import { FutPlayerCard } from "@/components/home/FutPlayerCard";
 import { TiltCard } from "@/components/fx/TiltCard";
@@ -242,6 +243,9 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* TODAY'S HEROES */}
+      <TodayHeroes />
 
       {/* UPCOMING MATCH */}
       {upcomingMatchId && (
