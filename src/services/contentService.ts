@@ -2,11 +2,8 @@ import { orderBy, query, where } from "firebase/firestore";
 import { marqueeCol, newsCol, sponsorsCol } from "@/firebase/collections";
 
 export function publishedNewsQuery() {
-  return query(
-    newsCol(),
-    where("isPublished", "==", true),
-    orderBy("publishedAt", "desc"),
-  );
+  // Composite index not guaranteed — filter only, sort client-side in useNews()
+  return query(newsCol(), where("isPublished", "==", true));
 }
 
 export function newsBySlugQuery(slug: string) {

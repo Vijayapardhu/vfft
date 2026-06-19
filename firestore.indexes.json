@@ -1,4 +1,53 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "news",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cachedPlayerStandings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "seasonId", "order": "ASCENDING" },
+        { "fieldPath": "computedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cachedTeamStandings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "seasonId", "order": "ASCENDING" },
+        { "fieldPath": "computedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "playerMatchStats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "matchId", "order": "ASCENDING" },
+        { "fieldPath": "kills", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "playerMatchStats",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "playerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "franchiseApplications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

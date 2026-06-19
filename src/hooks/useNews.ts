@@ -16,7 +16,18 @@ export function useNews() {
     () => (isFirebaseConfigured ? publishedNewsQuery() : null),
     [],
   );
-  return useCollectionData<NewsArticle>(q, []);
+  const { data, loading, error } = useCollectionData<NewsArticle>(q, []);
+  const sorted = useMemo(
+    () =>
+      data
+        .filter((a) => a.isPublished)
+        .sort(
+          (a, b) =>
+            (b.publishedAt?.toMillis() ?? 0) - (a.publishedAt?.toMillis() ?? 0),
+        ),
+    [data],
+  );
+  return { data: sorted, loading, error };
 }
 
 export function useAllNews() {
