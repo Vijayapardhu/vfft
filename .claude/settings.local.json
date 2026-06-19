@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(pnpm --version)",
+      "Bash(yarn --version)",
+      "Bash(git --version)",
+      "Bash(firebase --version)"
+    ]
+  }
+}

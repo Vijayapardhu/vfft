@@ -1,0 +1,31 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "auction": {
+      ".read": true,
+      ".write": false
+    },
+    "leaderboards": {
+      ".read": true,
+      ".write": false
+    },
+    "matchState": {
+      ".read": true,
+      ".write": false
+    },
+    "presence": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "notifications": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    }
+  }
+}

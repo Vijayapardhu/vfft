@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   VFFT DESIGN SYSTEM — Modern Gaming Neo-Brutalism
+   Tailwind CSS v4 CSS-first theme. No tailwind.config.js by design.
+   Color spec: PRD §11 / UID §3 · Type: UID §4 · Shadows/borders: ADB §11
+   ============================================================================ */
+@theme {
+  /* --- Brand palette (premium refresh — Riot/Arc/Porsche direction) ----- */
+  --color-cream: #f8f6f0; /* app background — warm off-white */
+  --color-ink: #111111; /* text / hairline borders */
+  --color-vred: #ff4d4d;
+  --color-vyellow: #ffd93d;
+  --color-gold: #d4af37; /* premium accent */
+  --color-vpurple: #c4b5fd;
+  --color-vgreen: #4ade80;
+  --color-vblue: #60a5fa;
+  --color-indigo: #4f46e5;
+
+  /* --- Soft, premium shadows (depth without cartoon borders) ----------- */
+  --shadow-soft: 0 10px 30px -12px rgba(17, 17, 17, 0.18);
+  --shadow-soft-lg: 0 30px 60px -20px rgba(17, 17, 17, 0.28);
+
+  /* --- Typography — Space Grotesk (wired via next/font in layout.tsx) --- */
+  --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+
+  /* --- Hard "brutalist" shadows --------------------------------------- */
+  --shadow-brutal-xs: 2px 2px 0px 0px #000000;
+  --shadow-brutal-sm: 4px 4px 0px 0px #000000;
+  --shadow-brutal: 6px 6px 0px 0px #000000;
+  --shadow-brutal-md: 8px 8px 0px 0px #000000;
+  --shadow-brutal-lg: 12px 12px 0px 0px #000000;
+  --shadow-brutal-xl: 16px 16px 0px 0px #000000;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-transform: uppercase;
+    font-weight: 700; /* Space Grotesk tops out at 700; reads as the boldest weight */
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+  }
+
+  /* Keyboard a11y: always-visible focus ring (UID §30) */
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* Neo-brutalist background patterns (UID §25) */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .bg-dots {
+    background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1.5px, transparent 1.5px);
+    background-size: 20px 20px;
+  }
+
+  /* Sticker rotation helpers (UID §2 — rotated elements) */
+  .sticker-l {
+    transform: rotate(-2deg);
+  }
+  .sticker-r {
+    transform: rotate(2deg);
+  }
+}
+
+/* ============================================================================
+   PREMIUM FX LAYER — Linear / Arc / Apple / Porsche direction.
+   Minimal, slow, cinematic. No particles, no spin, no bounce, no rainbow.
+   ============================================================================ */
+@keyframes vfft-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+/* Gentle vertical drift only — slow & subtle, never a bounce. */
+@keyframes vfft-drift {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+/* Slow diagonal sheen sweep for premium cards (subtle, not rainbow). */
+@keyframes vfft-sheen {
+  0% { transform: translateX(-150%) skewX(-12deg); }
+  100% { transform: translateX(250%) skewX(-12deg); }
+}
+
+@layer utilities {
+  /* Smooth-scroll (Lenis) baseline */
+  html.lenis,
+  html.lenis body { height: auto; }
+  .lenis.lenis-smooth { scroll-behavior: auto !important; }
+
+  /* Fine, static editorial grid (Linear/Apple) */
+  .bg-grid-fine {
+    background-image:
+      linear-gradient(to right, rgba(17, 17, 17, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(17, 17, 17, 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+
+  /* Soft brand spotlight — one calm wash, not a rainbow aurora */
+  .bg-spotlight {
+    background:
+      radial-gradient(60% 50% at 50% 0%, rgba(212, 175, 55, 0.10), transparent 70%),
+      radial-gradient(50% 45% at 85% 20%, rgba(79, 70, 229, 0.08), transparent 70%),
+      radial-gradient(45% 40% at 12% 75%, rgba(255, 77, 77, 0.07), transparent 70%);
+  }
+
+  /* Cinematic edge vignette */
+  .bg-vignette {
+    background: radial-gradient(120% 100% at 50% 40%, transparent 55%, rgba(17, 17, 17, 0.16) 100%);
+  }
+
+  /* Frosted glass surfaces (thin hairline, soft depth — no cartoon borders) */
+  .glass {
+    background: rgba(248, 246, 240, 0.6);
+    backdrop-filter: blur(18px) saturate(130%);
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    border: 1px solid rgba(17, 17, 17, 0.08);
+    box-shadow: var(--shadow-soft);
+  }
+  .glass-dark {
+    background: rgba(17, 17, 17, 0.6);
+    backdrop-filter: blur(20px) saturate(130%);
+    -webkit-backdrop-filter: blur(20px) saturate(130%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f8f6f0;
+    box-shadow: var(--shadow-soft-lg);
+  }
+  /* Reusable premium card surface */
+  .card-premium {
+    background: rgba(255, 255, 255, 0.66);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(17, 17, 17, 0.08);
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Film-grain noise overlay (inline SVG, no asset needed) */
+  .noise-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+
+  .perspective-1200 { perspective: 1200px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; }
+
+  .text-balance { text-wrap: balance; }
+
+  .animate-marquee { animation: vfft-marquee 36s linear infinite; }
+  .animate-drift { animation: vfft-drift 7s ease-in-out infinite; }
+}
+
+/* Accessibility — respect prefers-reduced-motion (TRD §28, UID §30).
+   Disables bounce/pulse/rotate/confetti-style motion globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

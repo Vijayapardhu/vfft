@@ -1,0 +1,194 @@
+rules_version = '2';
+
+// ============================================================================
+// VFFT — Velangi Free Fire Tournament — Firestore Security Rules
+// ----------------------------------------------------------------------------
+// PROTOTYPE — review before a large public launch.
+//
+// Model:
+//   * PUBLIC reads for everything visitors/spectators see (SRS §2) + the CMS.
+//   * ADMIN-gated writes for everything admins manage (players approval, teams,
+//     matches, results, stats, standings, hall of fame, news, gallery, CMS...).
+//     Admin = users/{uid}.role == 'admin' (bootstrap the first admin manually).
+//   * SERVER-ONLY writes for the truly-untrusted ops: auction `auctions`/`bids`
+//     are written ONLY by the Admin SDK in /api routes (clients can't fake bids).
+//   * PII isolation: users docs + players/{id}/private (contact) + matches
+//     room credentials are restricted to their owners / participants.
+//   * Role escalation is impossible from the client.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================== Helpers ============================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isAdmin() {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    function affected() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // ===================== users/{uid} (PII — strict) =====================
+    function isValidNewUser(userId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['uid','email','displayName','photoURL','role',
+              'playerId','teamId','fcmTokens','createdAt','updatedAt','lastLoginAt'])
+        && d.uid == userId
+        && d.role == 'guest'
+        && (!('email' in d) || d.email == null || (d.email is string && d.email.size() < 320))
+        && (!('displayName' in d) || d.displayName == null || (d.displayName is string && d.displayName.size() < 120))
+        && (!('photoURL' in d) || d.photoURL == null || (d.photoURL is string && d.photoURL.size() < 500));
+    }
+    function isSafeSelfUserUpdate(userId) {
+      let before = resource.data.role;
+      let after = request.resource.data.role;
+      return isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && (after == before || (before == 'guest' && after == 'player'));
+    }
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidNewUser(userId);
+      allow update: if isSafeSelfUserUpdate(userId) || isAdmin();
+      allow delete: if false;
+    }
+
+    // ===================== players (PUBLIC profile, no PII) =====================
+    function isValidPlayerCreate() {
+      let d = request.resource.data;
+      return d.uid == request.auth.uid
+        && d.ign is string && d.ign.size() >= 2 && d.ign.size() <= 30
+        && d.role in ['rusher','sniper','support','igl']
+        && d.status == 'pending'
+        && !('teamId' in d) && !('soldPrice' in d);
+    }
+    function isOwnerPlayerUpdate() {
+      return resource.data.uid == request.auth.uid
+        && affected().hasOnly(['ign','device','photoURL','role','weapons','rolePercentages','titles','updatedAt']);
+    }
+    match /players/{playerId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidPlayerCreate();
+      allow update: if isOwnerPlayerUpdate() || isAdmin();
+      allow delete: if isAdmin();
+
+      // Private contact PII — owner + admin only.
+      function isValidContact() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['uid','realName','freeFireUid','whatsappNumber'])
+          && d.uid == request.auth.uid
+          && d.realName is string && d.realName.size() >= 2 && d.realName.size() <= 60
+          && d.freeFireUid is string && d.freeFireUid.matches('^\\d{6,15}$')
+          && d.whatsappNumber is string && d.whatsappNumber.matches('^\\+?\\d{10,15}$');
+      }
+      match /private/{docId} {
+        allow read: if (isAuthenticated() && resource.data.uid == request.auth.uid) || isAdmin();
+        allow create: if isAuthenticated() && isValidContact();
+        allow update: if isAuthenticated() && resource.data.uid == request.auth.uid && isValidContact();
+        allow delete: if false;
+      }
+    }
+
+    // ===================== Matches (public schedule) =====================
+    match /matches/{matchId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      // Room credentials — admin sets them; participating team leaders/owners
+      // (users.teamId matches a team in the fixture) + admins can read.
+      match /private/{doc} {
+        function uTeam() {
+          return isAuthenticated()
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId
+            : null;
+        }
+        function m() {
+          return get(/databases/$(database)/documents/matches/$(matchId)).data;
+        }
+        allow read: if isAdmin()
+          || (uTeam() != null && (uTeam() == m().team1Id || uTeam() == m().team2Id));
+        allow write: if isAdmin();
+      }
+    }
+
+    // ===================== Lineups =====================
+    match /lineups/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ===================== Disputes =====================
+    match /disputes/{id} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.raisedBy == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.raisedBy == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ===================== Notifications =====================
+    // Public read (announcement-style), admin write.
+    // User-specific notification filtering happens client-side.
+    match /notifications/{id} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin()
+        || (isAuthenticated()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']));
+      allow delete: if isAdmin();
+    }
+
+    // ===================== Audit logs (immutable, admin) =====================
+    match /auditLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ===================== Server-only: auction (untrusted writers) =====================
+    // Written ONLY by the Admin SDK in /api/auction/* routes (the Admin SDK
+    // bypasses these rules). Clients can read the live state but never write.
+    match /auctions/{id} { allow read: if true; allow write: if false; }
+    match /bids/{id}     { allow read: if true; allow write: if false; }
+
+    // ===================== Admin-managed, public read =====================
+    // Game data + standings + CMS. Public can read; only admins write.
+    match /teams/{id}                 { allow read: if true; allow write: if isAdmin(); }
+    match /seasons/{id}               { allow read: if true; allow write: if isAdmin(); }
+    match /results/{id}               { allow read: if true; allow write: if isAdmin(); }
+    match /resultEvidence/{id}        { allow read: if true; allow write: if isAdmin(); }
+    match /playerMatchStats/{id}      { allow read: if true; allow write: if isAdmin(); }
+    match /teamSeasonStats/{id}       { allow read: if true; allow write: if isAdmin(); }
+    match /playerSeasonStats/{id}     { allow read: if true; allow write: if isAdmin(); }
+    match /cachedTeamStandings/{id}   { allow read: if true; allow write: if isAdmin(); }
+    match /cachedPlayerStandings/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /cachedLeaderboards/{id}    { allow read: if true; allow write: if isAdmin(); }
+    match /achievements/{id}          { allow read: if true; allow write: if isAdmin(); }
+    match /transfers/{id}             { allow read: if true; allow write: if isAdmin(); }
+    match /substitutions/{id}         { allow read: if true; allow write: if isAdmin(); }
+    match /announcements/{id}         { allow read: if true; allow write: if isAdmin(); }
+    match /gallery/{id}               { allow read: if true; allow write: if isAdmin(); }
+    match /hallOfFame/{id}            { allow read: if true; allow write: if isAdmin(); }
+
+    // ----- CMS content (home, settings, marquee, news, sponsors) -----
+    match /homeContent/{id}           { allow read: if true; allow write: if isAdmin(); }
+    match /settings/{id}              { allow read: if true; allow write: if isAdmin(); }
+    match /marquee/{id}               { allow read: if true; allow write: if isAdmin(); }
+    match /news/{id}                  { allow read: if true; allow write: if isAdmin(); }
+    match /sponsors/{id}              { allow read: if true; allow write: if isAdmin(); }
+    match /weapons/{id}               { allow read: if true; allow write: if isAdmin(); }
+
+    // Default deny.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
