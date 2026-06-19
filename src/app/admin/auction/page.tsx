@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, query, where } from "firebase/firestore";
 import {
+  AlertTriangle,
   CheckCircle,
   Gavel,
   Hammer,
@@ -199,17 +200,26 @@ export default function AdminAuctionPage() {
     [seasonId],
   );
   const { data: allAuctions } = useCollectionData(unsoldQuery, [seasonId]);
+  // Player IDs already in the RTDB sold board (settled this session)
+  const soldPlayerIds = useMemo(
+    () => new Set(soldEntries.map((e) => e.playerId)),
+    [soldEntries],
+  );
+
   const unsoldAuctions = useMemo(
     () =>
       allAuctions
-        .filter((a) => (a as unknown as { status: string }).status === "unsold")
+        .filter((a) => {
+          const d = a as unknown as { status: string; playerId: string };
+          return d.status === "unsold" && !soldPlayerIds.has(d.playerId);
+        })
         .sort(
           (a, b) =>
             ((b as unknown as { updatedAt?: { toMillis: () => number } }).updatedAt?.toMillis() ?? 0) -
             ((a as unknown as { updatedAt?: { toMillis: () => number } }).updatedAt?.toMillis() ?? 0),
         )
         .slice(0, 20),
-    [allAuctions],
+    [allAuctions, soldPlayerIds],
   );
 
   const availablePlayers = useMemo(
@@ -289,6 +299,38 @@ export default function AdminAuctionPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function handleResetSeason(includeApplications: boolean) {
+    if (!seasonId) return;
+    const first = confirm(
+      "⚠️ DANGER: This will reset the ENTIRE auction for this season.\n\n" +
+      "• All sold players will be released back to the pool\n" +
+      "• All team purses will be restored to starting values\n" +
+      "• All auction history will be deleted\n" +
+      (includeApplications ? "• All franchise applications will be deleted\n" : "") +
+      "\nThis CANNOT be undone. Type RESET to continue.",
+    );
+    if (!first) return;
+    const typed = prompt('Type RESET to confirm:');
+    if (typed?.trim() !== "RESET") { alert("Cancelled."); return; }
+    setSaving(true);
+    try {
+      const { ok, data } = await callAuctionAPI("/api/admin/reset-auction", {
+        seasonId,
+        includeApplications,
+        confirm: "RESET_CONFIRMED",
+      });
+      const d = data as { results?: { auctions: number; players: number; teams: number; applications: number }; error?: string };
+      if (!ok) { alert(d.error ?? "Reset failed"); return; }
+      const r = d.results;
+      setResultMsg({
+        ok: true,
+        text: `Season reset complete — ${r?.auctions ?? 0} auctions deleted, ${r?.players ?? 0} players released, ${r?.teams ?? 0} teams reset`,
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (auctionLoading) {
     return (
       <div>
@@ -307,7 +349,7 @@ export default function AdminAuctionPage() {
         title="Auction"
         subtitle={auction ? `Live — ${auction.playerName}` : "No active auction"}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {auction && (
               <Button variant="red" size="sm" onClick={handleClear} disabled={saving}>
                 <RotateCcw className="h-4 w-4" /> Clear Board
@@ -321,6 +363,15 @@ export default function AdminAuctionPage() {
               title={auction ? "Settle the current auction first" : undefined}
             >
               <Gavel className="h-4 w-4" /> Start Auction
+            </Button>
+            <Button
+              variant="red"
+              size="sm"
+              onClick={() => handleResetSeason(false)}
+              disabled={saving}
+              title="Reset full auction — releases all players, restores purses"
+            >
+              <AlertTriangle className="h-4 w-4" /> Reset Season
             </Button>
           </div>
         }

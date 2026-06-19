@@ -305,8 +305,11 @@ export function AuctionRoom() {
               {secondsLeft !== null && auction.endsAt !== null && (
                 <div className="mt-2 h-2 overflow-hidden rounded-full border-2 border-ink bg-cream">
                   <motion.div
-                    className="h-full bg-vred"
-                    animate={{ width: `${Math.min(100, (secondsLeft / 60) * 100)}%` }}
+                    className={cn(
+                      "h-full transition-colors",
+                      secondsLeft > 20 ? "bg-vgreen" : secondsLeft > 10 ? "bg-vyellow" : "bg-vred",
+                    )}
+                    animate={{ width: `${Math.min(100, (secondsLeft / ((auction as unknown as { timerSeconds?: number }).timerSeconds ?? 60)) * 100)}%` }}
                     transition={{ duration: 0.3 }}
                   />
                 </div>
@@ -345,56 +348,89 @@ export function AuctionRoom() {
           {auction.status === "active" && (
             <div className="mt-6">
               {canBid && myTeam && (
-                <p className="mb-3 text-center text-sm font-bold">
-                  💰 You have {formatNumber(myTeam.remainingPurse)} coins to spend
+                <p className="mb-2 text-center text-sm font-bold">
+                  💰 You have {formatNumber(myTeam.remainingPurse)} coins
                 </p>
               )}
-              {canBid ? (
-                <>
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {bidOptions.map((amount) => (
+
+              {canBid ? (() => {
+                const isLeading = !!(myTeam && auction.highestTeamId === myTeam.id);
+                const purse = myTeam?.remainingPurse ?? 0;
+
+                if (isLeading) {
+                  return (
+                    <div className="rounded-2xl border-4 border-vgreen bg-vgreen/10 p-4 text-center">
+                      <p className="text-base font-bold text-vgreen">✅ You have the highest bid!</p>
+                      <p className="mt-1 text-xs font-medium text-ink/60">
+                        Wait for a competitor to outbid you.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="flex flex-wrap justify-center gap-3">
+                      {bidOptions.map((amount) => {
+                        const canAfford = purse >= amount;
+                        return (
+                          <Button
+                            key={amount}
+                            variant="red"
+                            size="lg"
+                            disabled={busy || !canAfford}
+                            title={canAfford ? undefined : "Not enough coins"}
+                            onClick={() => {
+                              sound.click();
+                              setOptimisticBid(amount);
+                              act(() => submitBid(auction.auctionId, amount)).catch(() => setOptimisticBid(null));
+                            }}
+                          >
+                            {canAfford ? `Bid ${formatNumber(amount)}` : `${formatNumber(amount)} 🚫`}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        min={minBid}
+                        max={purse}
+                        value={customBid}
+                        onChange={(e) => setCustomBid(e.target.value)}
+                        placeholder={`Min ${formatNumber(minBid)}`}
+                        className="w-40"
+                      />
                       <Button
-                        key={amount}
-                        variant="red"
-                        size="lg"
-                        disabled={busy}
+                        variant="ink"
+                        disabled={
+                          busy ||
+                          !customBid ||
+                          Number(customBid) < minBid ||
+                          Number(customBid) > purse
+                        }
+                        title={Number(customBid) > purse ? "Not enough coins" : undefined}
                         onClick={() => {
-                          sound.click();
-                          setOptimisticBid(amount);
-                          act(() => submitBid(auction.auctionId, amount)).catch(() => setOptimisticBid(null));
+                          const amt = Number(customBid);
+                          setOptimisticBid(amt);
+                          act(async () => {
+                            await submitBid(auction.auctionId, amt);
+                            setCustomBid("");
+                          }).catch(() => setOptimisticBid(null));
                         }}
                       >
-                        Bid {formatNumber(amount)}
+                        Bid
                       </Button>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-center justify-center gap-2">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={minBid}
-                      value={customBid}
-                      onChange={(e) => setCustomBid(e.target.value)}
-                      placeholder={`Min ${formatNumber(minBid)}`}
-                      className="w-40"
-                    />
-                    <Button
-                      variant="ink"
-                      disabled={busy || !customBid || Number(customBid) < minBid}
-                      onClick={() => {
-                        const amt = Number(customBid);
-                        setOptimisticBid(amt);
-                        act(async () => {
-                          await submitBid(auction.auctionId, amt);
-                          setCustomBid("");
-                        }).catch(() => setOptimisticBid(null));
-                      }}
-                    >
-                      Bid
-                    </Button>
-                  </div>
-                </>
-              ) : (
+                    </div>
+                    {customBid && Number(customBid) > purse && (
+                      <p className="mt-2 text-center text-xs font-bold text-vred">
+                        Exceeds your remaining purse ({formatNumber(purse)} coins)
+                      </p>
+                    )}
+                  </>
+                );
+              })() : (
                 <p className="text-center text-sm font-bold text-ink/60">
                   {isAuthenticated
                     ? "Only team leaders & owners can bid."
