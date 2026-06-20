@@ -1,14 +1,13 @@
-import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
-import { adminDb, adminRtdb } from "@/server/firebaseAdmin";
-import { clearBidFeed, setCurrentAuction } from "@/server/liveState";
+import { adminRtdb } from "@/server/firebaseAdmin";
+import { openAuction } from "@/server/auctionOpen";
 
 export const runtime = "nodejs";
 
 /**
- * Put a player up for auction (admin only). Writes the permanent record to
- * Firestore and broadcasts the live lot to RTDB `auction/current`.
+ * Put a player up for auction (admin only). Supersedes any running lot, writes
+ * the permanent record to Firestore, and broadcasts the live lot to RTDB.
  */
 export async function POST(req: Request) {
   const admin = await requireAdmin(req);
@@ -31,73 +30,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const db = adminDb();
-  // Timed lots get a live clock; manual lots have no clock until the admin hammers.
-  const endsAtMs: number | null =
-    mode === "timed" ? Date.now() + durationSeconds * 1000 : null;
-
   try {
-    const result = await db.runTransaction(async (tx) => {
-      const playerRef = db.collection("players").doc(playerId);
-      const playerSnap = await tx.get(playerRef);
-      if (!playerSnap.exists) throw new Error("Player not found.");
-      const player = playerSnap.data() ?? {};
-      if (player.status !== "approved") throw new Error("Player is not approved.");
-      if (player.teamId) throw new Error("Player is already signed to a team.");
-
-      // Auto-stop any running lot for this season instead of blocking — opening
-      // a new auction explicitly supersedes the old one (cancels it as unsold,
-      // no sale / no purse change). This also clears any "stuck active" doc that
-      // would otherwise cause "Another auction is already active".
-      const activeSnap = await tx.get(
-        db.collection("auctions").where("status", "==", "active").limit(20),
-      );
-      for (const d of activeSnap.docs) {
-        if (d.data().seasonId === seasonId) {
-          tx.update(d.ref, { status: "unsold", updatedAt: FieldValue.serverTimestamp() });
-        }
-      }
-
-      const auctionRef = db.collection("auctions").doc();
-      tx.set(auctionRef, {
-        seasonId,
-        playerId,
-        mode,
-        basePrice,
-        highestBid: 0,
-        status: "active",
-        startedAt: FieldValue.serverTimestamp(),
-        endsAt: endsAtMs ? new Date(endsAtMs) : null,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      return {
-        auctionId: auctionRef.id,
-        playerIgn: (player.ign as string) ?? "Player",
-        playerPhotoURL: (player.photoURL as string | null) ?? null,
-        playerRole: (player.role as string) ?? "",
-      };
-    });
-
-    await setCurrentAuction({
-      auctionId: result.auctionId,
+    const { auctionId } = await openAuction({
       playerId,
-      playerIgn: result.playerIgn,
-      playerPhotoURL: result.playerPhotoURL,
-      playerRole: result.playerRole,
-      mode,
+      seasonId,
       basePrice,
-      currentBid: 0,
-      highestTeamId: null,
-      highestTeamName: null,
-      status: "active",
-      endsAt: endsAtMs,
+      mode,
+      durationSeconds,
+      performedBy: admin.uid,
     });
-    await clearBidFeed();
-    // The reveal is over once the real lot is live — clear the reel.
+    // A manual start clears any leftover spin reveal.
     await adminRtdb().ref("auction/spin").set(null);
-
-    return NextResponse.json({ ok: true, auctionId: result.auctionId });
+    return NextResponse.json({ ok: true, auctionId });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Failed to start auction." },

@@ -208,27 +208,28 @@ export default function AdminAuctionPage() {
     () => allAuctions.some((a) => (a as unknown as { status?: string }).status === "active"),
     [allAuctions],
   );
-  // Player IDs already in the RTDB sold board (settled this session)
-  const soldPlayerIds = useMemo(
-    () => new Set(soldEntries.map((e) => e.playerId)),
-    [soldEntries],
-  );
-
-  const unsoldAuctions = useMemo(
-    () =>
-      allAuctions
-        .filter((a) => {
-          const d = a as unknown as { status: string; playerId: string };
-          return d.status === "unsold" && !soldPlayerIds.has(d.playerId);
-        })
-        .sort(
-          (a, b) =>
-            ((b as unknown as { updatedAt?: { toMillis: () => number } }).updatedAt?.toMillis() ?? 0) -
-            ((a as unknown as { updatedAt?: { toMillis: () => number } }).updatedAt?.toMillis() ?? 0),
-        )
-        .slice(0, 20),
-    [allAuctions, soldPlayerIds],
-  );
+  // Unsold board: every player with an "unsold" lot who is NOT currently signed
+  // to a team (teamId is the source of truth). A player keeps showing here until
+  // they're actually sold/assigned, so they can always be re-auctioned. Dedup by
+  // player (a re-auctioned-then-unsold player can have several unsold records).
+  const unsoldAuctions = useMemo(() => {
+    const sorted = [...allAuctions].sort(
+      (a, b) =>
+        ((b as unknown as { updatedAt?: { toMillis: () => number } }).updatedAt?.toMillis() ?? 0) -
+        ((a as unknown as { updatedAt?: { toMillis: () => number } }).updatedAt?.toMillis() ?? 0),
+    );
+    const seen = new Set<string>();
+    const list: typeof allAuctions = [];
+    for (const a of sorted) {
+      const d = a as unknown as { status: string; playerId: string };
+      if (d.status !== "unsold" || seen.has(d.playerId)) continue;
+      const p = players.find((pl) => pl.id === d.playerId);
+      if (!p || p.teamId) continue; // skip if already signed or missing
+      seen.add(d.playerId);
+      list.push(a);
+    }
+    return list.slice(0, 30);
+  }, [allAuctions, players]);
 
   const availablePlayers = useMemo(
     () => players.filter((p) => !p.teamId && p.status === "approved"),
@@ -265,21 +266,18 @@ export default function AdminAuctionPage() {
     setSaving(true);
     setResultMsg(null);
     try {
-      const { ok, data } = await callAuctionAPI("/api/auction/spin", { seasonId });
-      const d = data as { playerId?: string; ign?: string; startedAt?: number; durationMs?: number; error?: string };
-      if (!ok || !d.playerId || !d.startedAt || !d.durationMs) {
+      // The server picks the winner, broadcasts the reveal, AND opens the lot
+      // (clock delayed past the reveal) — no fragile client-side timer.
+      const body: Record<string, unknown> = { seasonId, basePrice, mode };
+      if (mode === "timed") body.durationSeconds = timerSecs;
+      const { ok, data } = await callAuctionAPI("/api/auction/spin", body);
+      const d = data as { ign?: string; error?: string };
+      if (!ok) {
         setResultMsg({ ok: false, text: d.error ?? "Failed to spin" });
         return;
       }
       setShowStartForm(false);
-      // Open the real lot for the winner once the reel lands + the reveal shows.
-      const startAt = d.startedAt + d.durationMs + 2000;
-      const winnerId = d.playerId;
-      window.setTimeout(() => {
-        const body: Record<string, unknown> = { playerId: winnerId, seasonId, basePrice, mode };
-        if (mode === "timed") body.durationSeconds = timerSecs;
-        void callAuctionAPI("/api/auction/start", body);
-      }, Math.max(0, startAt - Date.now()));
+      setResultMsg({ ok: true, text: `Spinning… ${d.ign ?? "a player"} is up next!` });
     } finally {
       setSaving(false);
     }

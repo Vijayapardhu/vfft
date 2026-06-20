@@ -56,17 +56,23 @@ export function stopAuction(auctionId?: string, seasonId?: string) {
 
 /**
  * Admin: pick a RANDOM available player with a synchronized slot-machine reveal
- * broadcast to every client. Returns the winner + timing; the caller starts the
- * actual lot once the reel lands.
+ * broadcast to every client. The server also OPENS the lot (with the bid clock
+ * delayed past the reveal), so the player reliably goes up for auction.
  */
-export function spinRandomPlayer(seasonId: string) {
+export function spinRandomPlayer(input: {
+  seasonId: string;
+  basePrice: number;
+  mode: "timed" | "manual";
+  durationSeconds?: number;
+}) {
   return apiPost<{
     ok: true;
+    auctionId: string;
     playerId: string;
     ign: string;
     startedAt: number;
     durationMs: number;
-  }>("/api/auction/spin", { seasonId });
+  }>("/api/auction/spin", input);
 }
 
 /**

@@ -65,23 +65,13 @@ export function AuctionAdminPanel({
     }
   }
 
-  /** Spin for a random player, then open the lot once the reel lands. */
+  /** Spin for a random player — the server reveals AND opens the lot. */
   async function spin() {
     if (!seasonId) return;
     setError(null);
     setBusy(true);
     try {
-      const res = await spinRandomPlayer(seasonId);
-      const startAt = res.startedAt + res.durationMs + 2000;
-      window.setTimeout(() => {
-        void startAuction({
-          playerId: res.playerId,
-          seasonId,
-          basePrice,
-          mode,
-          durationSeconds: duration,
-        }).catch(() => {});
-      }, Math.max(0, startAt - Date.now()));
+      await spinRandomPlayer({ seasonId, basePrice, mode, durationSeconds: duration });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Spin failed.");
     } finally {
