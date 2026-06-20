@@ -14,7 +14,6 @@ import {
   YAxis,
 } from "recharts";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { GoogleAnalyticsPanel } from "@/components/admin/GoogleAnalyticsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { MAX_SQUAD_SIZE } from "@/constants/app";
@@ -198,7 +197,7 @@ export default function AdminAnalyticsPage() {
 
   return (
     <div>
-      <AdminHeader title="Analytics" subtitle="Live platform metrics & website traffic" />
+      <AdminHeader title="Analytics" subtitle="Live platform metrics & player performance" />
 
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {summaryCards.map((s) => (
@@ -258,9 +257,6 @@ export default function AdminAnalyticsPage() {
         <ChartCard title="Top Teams (Points)" data={topTeams} />
         <ChartCard title="Top Players (Kills)" data={topPlayers} />
       </div>
-
-      {/* Google Analytics website report */}
-      <GoogleAnalyticsPanel />
     </div>
   );
 }
