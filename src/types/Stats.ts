@@ -15,6 +15,13 @@ export interface PlayerMatchStats extends Timestamps {
   damage: number;
   mvp: boolean;
 
+  /** Extra per-player detail captured from the post-match scoreboard. */
+  deaths?: number;
+  assists?: number;
+  knockdowns?: number;
+  /** Headshot rate as a percentage (0-100), straight from the scoreboard. */
+  headshotRate?: number;
+
   /** Required link to resultEvidence. */
   evidenceId: string;
   enteredBy: string;

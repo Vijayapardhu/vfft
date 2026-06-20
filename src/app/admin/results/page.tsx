@@ -23,7 +23,32 @@ interface PlayerStat {
   playerId: string;
   ign: string;
   kills: number;
+  deaths: number;
+  assists: number;
   damage: number;
+  headshotRate: number; // percent 0-100
+  knockdowns: number;
+}
+
+/** Numeric stat fields the admin types per player. */
+type StatField = "kills" | "deaths" | "assists" | "damage" | "headshotRate" | "knockdowns";
+
+const STAT_FIELDS: { key: StatField; label: string; w: string }[] = [
+  { key: "kills", label: "K", w: "w-12" },
+  { key: "deaths", label: "D", w: "w-12" },
+  { key: "assists", label: "A", w: "w-12" },
+  { key: "damage", label: "DMG", w: "w-16" },
+  { key: "headshotRate", label: "HS%", w: "w-14" },
+  { key: "knockdowns", label: "KO", w: "w-12" },
+];
+
+interface SavedStat {
+  kills: number;
+  deaths: number;
+  assists: number;
+  damage: number;
+  headshotRate: number;
+  knockdowns: number;
 }
 
 export default function AdminResultsPage() {
@@ -36,6 +61,9 @@ export default function AdminResultsPage() {
   const [team2PP, setTeam2PP] = useState(0);
   const [winner, setWinner] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
+  // A second, reference-only screenshot (e.g. the enemy team's stat screen) so
+  // both teams' numbers are visible while typing. Not saved as evidence.
+  const [refUrl2, setRefUrl2] = useState("");
   const [saving, setSaving] = useState(false);
   const [computing, setComputing] = useState(false);
 
@@ -47,9 +75,7 @@ export default function AdminResultsPage() {
   const [manualDamage2, setManualDamage2] = useState(0);
   // Previously-saved per-player kills/damage, so editing a match shows current
   // values instead of resetting to zero.
-  const [savedStats, setSavedStats] = useState<
-    Record<string, { kills: number; damage: number }>
-  >({});
+  const [savedStats, setSavedStats] = useState<Record<string, SavedStat>>({});
 
   const completedOrLive = useMemo(
     () => matches.filter((m) => m.status === "completed" || m.status === "live"),
@@ -69,6 +95,7 @@ export default function AdminResultsPage() {
     setTeam2PP(0);
     setWinner("");
     setEvidenceUrl("");
+    setRefUrl2("");
     setManualKills1(0);
     setManualKills2(0);
     setManualDamage1(0);
@@ -105,11 +132,18 @@ export default function AdminResultsPage() {
       if (evSnap.exists()) {
         setEvidenceUrl((evSnap.data().screenshotUrl as string) ?? "");
       }
-      const map: Record<string, { kills: number; damage: number }> = {};
+      const map: Record<string, SavedStat> = {};
       for (const s of statSnap.docs) {
         const d = s.data();
         if (typeof d.playerId === "string") {
-          map[d.playerId] = { kills: d.kills ?? 0, damage: d.damage ?? 0 };
+          map[d.playerId] = {
+            kills: d.kills ?? 0,
+            deaths: d.deaths ?? 0,
+            assists: d.assists ?? 0,
+            damage: d.damage ?? 0,
+            headshotRate: d.headshotRate ?? 0,
+            knockdowns: d.knockdowns ?? 0,
+          };
         }
       }
       setSavedStats(map);
@@ -138,12 +172,17 @@ export default function AdminResultsPage() {
         const p = allPlayers.find((pl) => pl.id === id);
         const old = prev.find((x) => x.playerId === id);
         const saved = savedStats[id];
+        const pick = (field: StatField) => old?.[field] ?? saved?.[field] ?? 0;
         return {
           playerId: id,
           ign: p?.ign ?? "?",
           // Prefer already-typed values, then previously-saved, then 0.
-          kills: old?.kills ?? saved?.kills ?? 0,
-          damage: old?.damage ?? saved?.damage ?? 0,
+          kills: pick("kills"),
+          deaths: pick("deaths"),
+          assists: pick("assists"),
+          damage: pick("damage"),
+          headshotRate: pick("headshotRate"),
+          knockdowns: pick("knockdowns"),
         };
       });
 
@@ -176,12 +215,14 @@ export default function AdminResultsPage() {
   function updatePlayerStat(
     team: "team1" | "team2",
     playerId: string,
-    field: "kills" | "damage",
+    field: StatField,
     value: number,
   ) {
+    const cap = field === "headshotRate" ? 100 : Infinity;
+    const clean = Math.min(cap, Math.max(0, Number.isFinite(value) ? value : 0));
     const setter = team === "team1" ? setTeam1Players : setTeam2Players;
     setter((prev) =>
-      prev.map((p) => (p.playerId === playerId ? { ...p, [field]: Math.max(0, value) } : p)),
+      prev.map((p) => (p.playerId === playerId ? { ...p, [field]: clean } : p)),
     );
   }
 
@@ -247,7 +288,11 @@ export default function AdminResultsPage() {
             playerId: ps.playerId,
             teamId: ps.teamId,
             kills: ps.kills,
+            deaths: ps.deaths,
+            assists: ps.assists,
             damage: ps.damage,
+            headshotRate: ps.headshotRate,
+            knockdowns: ps.knockdowns,
             evidenceId,
             enteredBy: uid,
             createdAt: serverTimestamp(),
@@ -299,31 +344,36 @@ export default function AdminResultsPage() {
         </div>
 
         {hasSquad ? (
-          players.map((ps) => (
-            <div key={ps.playerId} className="mb-2 flex items-center gap-2">
-              <span className="min-w-0 flex-1 truncate text-sm font-bold">{ps.ign}</span>
-              <div className="flex items-center gap-1">
-                <Label className="mb-0 text-[10px]">K</Label>
-                <input
-                  type="number"
-                  min={0}
-                  value={ps.kills}
-                  onChange={(e) => updatePlayerStat(team, ps.playerId, "kills", Number(e.target.value))}
-                  className="w-14 rounded-lg border-2 border-ink bg-cream px-2 py-1 text-xs font-bold text-center"
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <Label className="mb-0 text-[10px]">DMG</Label>
-                <input
-                  type="number"
-                  min={0}
-                  value={ps.damage}
-                  onChange={(e) => updatePlayerStat(team, ps.playerId, "damage", Number(e.target.value))}
-                  className="w-16 rounded-lg border-2 border-ink bg-cream px-2 py-1 text-xs font-bold text-center"
-                />
+          <>
+            <div className="mb-2 hidden grid-cols-[1fr_auto] items-center gap-2 sm:grid">
+              <span />
+              <div className="flex gap-2">
+                {STAT_FIELDS.map((f) => (
+                  <span key={f.key} className={`${f.w} text-center text-[9px] font-bold uppercase text-ink/40`}>{f.label}</span>
+                ))}
               </div>
             </div>
-          ))
+            {players.map((ps) => (
+              <div key={ps.playerId} className="mb-2 rounded-xl border-2 border-ink/15 p-2">
+                <p className="mb-1 truncate text-sm font-bold">{ps.ign}</p>
+                <div className="flex flex-wrap gap-2">
+                  {STAT_FIELDS.map((f) => (
+                    <div key={f.key} className="flex flex-col items-center">
+                      <Label className="mb-0 text-[9px] uppercase text-ink/50 sm:hidden">{f.label}</Label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={f.key === "headshotRate" ? 100 : undefined}
+                        value={ps[f.key]}
+                        onChange={(e) => updatePlayerStat(team, ps.playerId, f.key, Number(e.target.value))}
+                        className={`${f.w} rounded-lg border-2 border-ink bg-cream px-1 py-1 text-xs font-bold text-center`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
         ) : (
           <div className="space-y-2">
             <p className="mb-2 text-sm font-medium text-ink/40">No squad members — enter totals manually:</p>
@@ -400,7 +450,7 @@ export default function AdminResultsPage() {
     <div>
       <AdminHeader title="Results" subtitle="Enter match results & player stats" />
 
-      <Card className="max-w-3xl">
+      <Card className="max-w-5xl">
         <CardHeader>
           <CardTitle>Result Entry</CardTitle>
         </CardHeader>
@@ -419,6 +469,31 @@ export default function AdminResultsPage() {
 
           {selectedMatch && (
             <>
+              {/* Upload the scoreboard(s) first, then read each player's row
+                  while typing the stats below. */}
+              <div className="space-y-3 rounded-2xl border-4 border-ink bg-vyellow/10 p-3">
+                <p className="text-sm font-bold">
+                  📸 Upload the post-match scoreboard, then read each player&apos;s
+                  K/D/A · DMG · HS% · KO from it as you fill the rows below.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label>Scoreboard screenshot (saved as evidence)</Label>
+                    <ImageUploader value={evidenceUrl} onChange={setEvidenceUrl} folder="match-evidence" />
+                  </div>
+                  <div>
+                    <Label>Second screenshot (reference only — e.g. enemy team)</Label>
+                    <ImageUploader value={refUrl2} onChange={setRefUrl2} folder="match-evidence" />
+                  </div>
+                </div>
+                {(evidenceUrl || refUrl2) && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {evidenceUrl && <ScreenshotRef url={evidenceUrl} label="Evidence" />}
+                    {refUrl2 && <ScreenshotRef url={refUrl2} label="Reference" />}
+                  </div>
+                )}
+              </div>
+
               <div className="grid gap-4 sm:grid-cols-2">
                 {renderPlayerSide("team1")}
                 {renderPlayerSide("team2")}
@@ -431,11 +506,6 @@ export default function AdminResultsPage() {
                   <option value="team1">{team1?.name}</option>
                   <option value="team2">{team2?.name}</option>
                 </Select>
-              </div>
-
-              <div>
-                <Label>Screenshot Evidence</Label>
-                <ImageUploader value={evidenceUrl} onChange={setEvidenceUrl} folder="match-evidence" />
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -464,6 +534,27 @@ export default function AdminResultsPage() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/** Large, readable preview of a scoreboard screenshot with a full-size link. */
+function ScreenshotRef({ url, label }: { url: string; label: string }) {
+  return (
+    <div className="overflow-hidden rounded-xl border-2 border-ink">
+      <div className="flex items-center justify-between bg-ink px-3 py-1.5">
+        <span className="text-xs font-bold uppercase text-cream">{label}</span>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-bold text-vyellow hover:underline"
+        >
+          Open full size ↗
+        </a>
+      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt={label} className="max-h-96 w-full bg-cream object-contain" />
     </div>
   );
 }
