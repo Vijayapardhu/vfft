@@ -34,6 +34,15 @@ export function processSubstitution(
   });
 }
 
+/** Approve (locks) or reject a team's submitted match-day lineup. */
+export function processLineup(
+  lineupId: string,
+  action: "approve" | "reject",
+  reason?: string,
+) {
+  return apiPost<{ ok: true }>("/api/admin/lineup", { lineupId, action, reason });
+}
+
 /** Set a match's status and broadcast it live to the Realtime Database. */
 export function setMatchLiveState(
   matchId: string,
