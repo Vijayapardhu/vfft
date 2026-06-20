@@ -1,8 +1,9 @@
 import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
-import { AUCTION_SETTLE_GRACE_SECONDS, MAX_SQUAD_SIZE } from "@/constants/app";
+import { AUCTION_SETTLE_GRACE_SECONDS } from "@/constants/app";
 import { adminDb } from "./firebaseAdmin";
 import { patchCurrentAuction, pushSold } from "./liveState";
+import { squadCapFrom } from "./squadCap";
 
 const SETTLE_GRACE_MS = AUCTION_SETTLE_GRACE_SECONDS * 1000;
 
@@ -61,9 +62,11 @@ export async function settleAuction(
     const soldTeamId: string = auction.highestBidTeamId;
     const teamRef = db.collection("teams").doc(soldTeamId);
     const playerRef = db.collection("players").doc(auction.playerId);
-    const [teamSnap, playerSnap] = await Promise.all([
+    const seasonRef = auction.seasonId ? db.collection("seasons").doc(auction.seasonId) : null;
+    const [teamSnap, playerSnap, seasonSnap] = await Promise.all([
       tx.get(teamRef),
       tx.get(playerRef),
+      seasonRef ? tx.get(seasonRef) : Promise.resolve(null),
     ]);
     if (!teamSnap.exists) throw new Error("Winning team not found.");
     if (!playerSnap.exists) throw new Error("Player not found.");
@@ -72,8 +75,9 @@ export async function settleAuction(
     const player = playerSnap.data() ?? {};
     const remaining: number = team.remainingPurse ?? 0;
     const squad: string[] = team.squad ?? [];
+    const cap = squadCapFrom(seasonSnap?.data());
     if (remaining < soldPrice) throw new Error("Winning team has insufficient purse.");
-    if (squad.length >= MAX_SQUAD_SIZE) throw new Error("Winning team's squad is full.");
+    if (squad.length >= cap) throw new Error("Winning team's squad is full.");
 
     tx.update(auctionRef, {
       status: "sold",

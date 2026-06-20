@@ -39,6 +39,7 @@ import { useCollectionData } from "@/hooks/useFirestore";
 import { useTeams } from "@/hooks/useTeams";
 import { usePlayers } from "@/hooks/usePlayers";
 import { toast } from "@/hooks/useToast";
+import { MAX_SQUAD_SIZE } from "@/constants/app";
 import { cn } from "@/lib/utils";
 import type { Season, SeasonStatus, WithId } from "@/types";
 
@@ -48,6 +49,7 @@ interface FormData {
   number: number;
   name: string;
   prizePool: string;
+  squadSize: number;
   startDate: string;
   endDate: string;
 }
@@ -97,6 +99,7 @@ function SeasonForm({
       number: nextNumber,
       name: `Season ${nextNumber}`,
       prizePool: "",
+      squadSize: MAX_SQUAD_SIZE,
       startDate: "",
       endDate: "",
       ...defaultValues,
@@ -128,6 +131,16 @@ function SeasonForm({
         <div>
           <Label>Prize Pool</Label>
           <Input {...register("prizePool")} placeholder="e.g. ₹50,000" />
+        </div>
+        <div>
+          <Label>Squad Size (players per team)</Label>
+          <Input
+            type="number"
+            min={1}
+            max={10}
+            {...register("squadSize", { valueAsNumber: true, min: { value: 1, message: "Min 1" }, max: { value: 10, message: "Max 10" } })}
+          />
+          <FieldError>{errors.squadSize?.message}</FieldError>
         </div>
         <div>
           <Label>Start Date</Label>
@@ -556,6 +569,7 @@ export default function AdminSeasonsPage() {
         number: data.number,
         name: data.name,
         prizePool: data.prizePool,
+        squadSize: Number.isFinite(data.squadSize) && data.squadSize > 0 ? data.squadSize : MAX_SQUAD_SIZE,
         startDate: toTimestamp(data.startDate),
         endDate: toTimestamp(data.endDate),
         status: "upcoming" as SeasonStatus,
@@ -581,6 +595,7 @@ export default function AdminSeasonsPage() {
         number: data.number,
         name: data.name,
         prizePool: data.prizePool,
+        squadSize: Number.isFinite(data.squadSize) && data.squadSize > 0 ? data.squadSize : MAX_SQUAD_SIZE,
         startDate: toTimestamp(data.startDate),
         endDate: toTimestamp(data.endDate),
         updatedAt: serverTimestamp(),
@@ -606,6 +621,7 @@ export default function AdminSeasonsPage() {
       number: s.number,
       name: s.name,
       prizePool: s.prizePool ?? "",
+      squadSize: s.squadSize ?? MAX_SQUAD_SIZE,
       startDate: tsToInput(s.startDate),
       endDate: tsToInput(s.endDate),
     };

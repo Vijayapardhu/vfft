@@ -1,8 +1,8 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
-import { MAX_SQUAD_SIZE } from "@/constants/app";
 import { requireAdmin } from "@/server/auth";
 import { adminDb } from "@/server/firebaseAdmin";
+import { squadCapFrom } from "@/server/squadCap";
 
 export const runtime = "nodejs";
 
@@ -58,7 +58,9 @@ export async function POST(req: Request) {
 
         const squad: string[] = team.squad ?? [];
         const remaining: number = team.remainingPurse ?? 0;
-        if (squad.length >= MAX_SQUAD_SIZE) throw new Error(`Squad is full (max ${MAX_SQUAD_SIZE}).`);
+        const seasonSnap = team.seasonId ? await tx.get(db.collection("seasons").doc(team.seasonId)) : null;
+        const cap = squadCapFrom(seasonSnap?.data());
+        if (squad.length >= cap) throw new Error(`Squad is full (max ${cap}).`);
         if (remaining < price) throw new Error("Team has insufficient purse for this price.");
 
         tx.update(playerRef, {
@@ -156,7 +158,9 @@ export async function POST(req: Request) {
 
       const toSquad: string[] = toTeam.squad ?? [];
       const toRemaining: number = toTeam.remainingPurse ?? 0;
-      if (toSquad.length >= MAX_SQUAD_SIZE) throw new Error(`Destination squad is full (max ${MAX_SQUAD_SIZE}).`);
+      const seasonSnap = toTeam.seasonId ? await tx.get(db.collection("seasons").doc(toTeam.seasonId)) : null;
+      const cap = squadCapFrom(seasonSnap?.data());
+      if (toSquad.length >= cap) throw new Error(`Destination squad is full (max ${cap}).`);
       if (toRemaining < price) throw new Error("Destination team has insufficient purse.");
 
       tx.update(playerRef, {

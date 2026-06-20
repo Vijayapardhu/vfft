@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Download, ExternalLink, Flame, Skull, Star, Target, UserRound } from "lucide-react";
-import { useMyPlayer } from "@/hooks/usePlayers";
+import { Download, ExternalLink, Flame, Gamepad2, Shield, Skull, Star, Target, UserRound } from "lucide-react";
+import { useMyPlayer, useTeamPlayers, usePlayers } from "@/hooks/usePlayers";
 import { usePlayerSeasonStats } from "@/hooks/usePlayers";
+import { useTeam, useTeams } from "@/hooks/useTeams";
+import { useMatches, useMatchResults, useMatchPlayerStats } from "@/hooks/useMatches";
 import { cn } from "@/lib/utils";
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
@@ -71,8 +73,77 @@ function buildOgUrl(params: Record<string, string>): string {
 export default function StoryGeneratorPage() {
   const { player, loading: playerLoading } = useMyPlayer();
   const { data: stats } = usePlayerSeasonStats(player?.id ?? null);
+  const { data: team } = useTeam(player?.teamId ?? null);
+  const { data: squadPlayers } = useTeamPlayers(player?.teamId ?? null);
 
+  const [mode, setMode] = useState<"player" | "team" | "match">("player");
   const [selectedType, setSelectedType] = useState<AchievementType>("kills");
+
+  // Match story data
+  const { data: matches } = useMatches();
+  const { data: teams } = useTeams();
+  const { data: allPlayers } = usePlayers();
+  const [selectedMatchId, setSelectedMatchId] = useState("");
+  const selectedMatch = matches.find((m) => m.id === selectedMatchId);
+  const { data: matchResults } = useMatchResults(selectedMatchId || null);
+  const { data: matchStats } = useMatchPlayerStats(selectedMatchId || null);
+  const playableMatches = useMemo(
+    () =>
+      [...matches]
+        .filter((m) => m.status === "completed" || m.status === "live")
+        .sort((a, b) => (a.matchNumber ?? 0) - (b.matchNumber ?? 0)),
+    [matches],
+  );
+
+  const matchOgUrl = useMemo(() => {
+    if (!selectedMatch) return null;
+    const t1 = teams.find((t) => t.id === selectedMatch.team1Id);
+    const t2 = teams.find((t) => t.id === selectedMatch.team2Id);
+    const r1 = matchResults.find((r) => r.teamId === selectedMatch.team1Id);
+    const r2 = matchResults.find((r) => r.teamId === selectedMatch.team2Id);
+    const params = new URLSearchParams();
+    params.set("title", selectedMatch.name || `Match ${selectedMatch.matchNumber}`);
+    params.set("code", selectedMatch.id.slice(0, 12));
+    if (selectedMatch.map) params.set("map", selectedMatch.map);
+    params.set("t1", t1?.name ?? "Team 1");
+    params.set("t2", t2?.name ?? "Team 2");
+    if (r1) params.set("s1", String(r1.totalPoints ?? 0));
+    if (r2) params.set("s2", String(r2.totalPoints ?? 0));
+    params.set("win", r1?.outcome === "win" ? "1" : r2?.outcome === "win" ? "2" : "0");
+    params.set("color", (t1?.primaryColor ?? "#4f46e5").replace(/^#/, ""));
+    for (const s of matchStats) {
+      const p = allPlayers.find((pl) => pl.id === s.playerId);
+      params.append("pn", p?.ign ?? "Player");
+      params.append("pk", String(s.kills ?? 0));
+      params.append("pd", String(s.damage ?? 0));
+    }
+    return `/api/og/match?${params.toString()}`;
+  }, [selectedMatch, teams, matchResults, matchStats, allPlayers]);
+
+  // Team story: leader (no price, shown as LEADER) + remaining squad with bids.
+  const teamOgUrl = useMemo(() => {
+    if (!team) return null;
+    const params = new URLSearchParams();
+    params.set("team", team.name);
+    params.set("color", (team.primaryColor ?? "#4f46e5").replace(/^#/, ""));
+    params.set("color2", (team.secondaryColor ?? team.primaryColor ?? "#ff6b6b").replace(/^#/, ""));
+    if (team.logoUrl) params.set("logo", team.logoUrl);
+    if (team.bannerUrl) params.set("banner", team.bannerUrl);
+    const leader =
+      squadPlayers.find((p) => p.uid === team.teamLeaderUid) ??
+      squadPlayers.find((p) => p.uid === team.ownerUid);
+    if (leader) {
+      params.set("lname", leader.ign);
+      if (leader.photoURL) params.set("lphoto", leader.photoURL);
+    }
+    for (const p of squadPlayers) {
+      if (leader && p.id === leader.id) continue;
+      params.append("pn", p.ign);
+      params.append("pp", String(p.soldPrice ?? 0));
+      params.append("pi", p.photoURL ?? "");
+    }
+    return `/api/og/team?${params.toString()}`;
+  }, [team, squadPlayers]);
 
   const activeStat = stats as {
     kills: number;
@@ -118,13 +189,15 @@ export default function StoryGeneratorPage() {
     [selectedType, activeOption.unit],
   );
 
-  const previewUrl = ogUrl ?? demoUrl;
+  const previewUrl =
+    mode === "team" ? teamOgUrl : mode === "match" ? matchOgUrl : ogUrl ?? demoUrl;
 
   function handleDownload() {
-    window.open(previewUrl, "_blank");
+    if (previewUrl) window.open(previewUrl, "_blank");
   }
 
   function handleCopy() {
+    if (!previewUrl) return;
     const fullUrl = `${window.location.origin}${previewUrl}`;
     navigator.clipboard.writeText(fullUrl).catch(() => {});
   }
@@ -150,8 +223,80 @@ export default function StoryGeneratorPage() {
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Controls */}
           <div className="space-y-6">
+            {/* Mode toggle: player card / team story / match story */}
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { id: "player", label: "My Card", icon: Star },
+                { id: "team", label: "Team", icon: Shield },
+                { id: "match", label: "Match", icon: Gamepad2 },
+              ] as const).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setMode(m.id)}
+                  className={cn(
+                    "flex items-center justify-center gap-2 rounded-2xl border-4 border-ink px-3 py-3 text-sm font-bold uppercase transition-all",
+                    mode === m.id ? "bg-vyellow shadow-brutal-sm" : "bg-cream hover:bg-vyellow/20",
+                  )}
+                >
+                  <m.icon className="h-4 w-4" /> {m.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Match mode: pick a match */}
+            {mode === "match" && (
+              <div className="space-y-2 rounded-2xl border-4 border-ink bg-cream p-4 shadow-brutal-sm">
+                <p className="text-xs font-bold uppercase tracking-widest text-ink/50">Select Match</p>
+                <select
+                  value={selectedMatchId}
+                  onChange={(e) => setSelectedMatchId(e.target.value)}
+                  className="min-h-11 w-full rounded-2xl border-4 border-ink bg-cream px-3 py-2 text-sm font-bold"
+                >
+                  <option value="">Choose a match…</option>
+                  {playableMatches.map((m) => {
+                    const a = teams.find((t) => t.id === m.team1Id)?.name ?? "Team 1";
+                    const b = teams.find((t) => t.id === m.team2Id)?.name ?? "Team 2";
+                    return (
+                      <option key={m.id} value={m.id}>
+                        {m.name || `Match ${m.matchNumber}`} — {a} vs {b}
+                      </option>
+                    );
+                  })}
+                </select>
+                {selectedMatch && (
+                  <p className="text-xs font-medium text-ink/60">
+                    Highest kills &amp; damage are highlighted in the poster.
+                  </p>
+                )}
+                {playableMatches.length === 0 && (
+                  <p className="text-xs font-medium text-ink/50">No completed matches yet.</p>
+                )}
+              </div>
+            )}
+
+            {/* Team mode info */}
+            {mode === "team" && (
+              team ? (
+                <div className="rounded-2xl border-4 border-ink bg-cream p-4 shadow-brutal-sm">
+                  <p className="font-bold uppercase">{team.name}</p>
+                  <p className="mt-1 text-xs font-medium text-ink/60">
+                    {squadPlayers.length} player{squadPlayers.length === 1 ? "" : "s"} · leader shown
+                    as <span className="font-bold">LEADER</span>, the rest with their auction bid value.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl border-4 border-vyellow bg-vyellow/10 px-5 py-4">
+                  <p className="text-sm font-bold">No team yet.</p>
+                  <p className="mt-1 text-xs font-medium text-ink/60">
+                    Sign in as a player on a franchise to generate your team story.
+                  </p>
+                </div>
+              )
+            )}
+
             {/* Player status */}
-            {!playerLoading && !player && (
+            {mode === "player" && !playerLoading && !player && (
               <div className="rounded-2xl border-4 border-vyellow bg-vyellow/10 px-5 py-4">
                 <p className="text-sm font-bold">
                   Not logged in as a player — showing demo card.
@@ -161,7 +306,7 @@ export default function StoryGeneratorPage() {
                 </p>
               </div>
             )}
-            {player && (
+            {mode === "player" && player && (
               <div className="flex items-center gap-4 rounded-2xl border-4 border-ink bg-cream p-4 shadow-brutal-sm">
                 <div className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl border-2 border-ink bg-vpurple/20">
                   {player.photoURL ? (
@@ -179,6 +324,8 @@ export default function StoryGeneratorPage() {
             )}
 
             {/* Achievement type selector */}
+            {mode === "player" && (
+            <>
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink/50">
                 Achievement Type
@@ -230,6 +377,8 @@ export default function StoryGeneratorPage() {
                 </div>
               </div>
             )}
+            </>
+            )}
 
             {/* Action buttons */}
             <div className="flex gap-3">
@@ -264,16 +413,24 @@ export default function StoryGeneratorPage() {
               Preview (1080 × 1920)
             </p>
             <div
-              className="overflow-hidden rounded-3xl border-4 border-ink shadow-brutal-md"
+              className="grid place-items-center overflow-hidden rounded-3xl border-4 border-ink bg-ink/5 shadow-brutal-md"
               style={{ aspectRatio: "1080/1920" }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                key={previewUrl}
-                src={previewUrl}
-                alt="Story preview"
-                className="h-full w-full object-cover"
-              />
+              {previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={previewUrl}
+                  src={previewUrl}
+                  alt="Story preview"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <p className="px-6 text-center text-sm font-medium text-ink/40">
+                  {mode === "match"
+                    ? "Pick a match above to generate the highlights poster."
+                    : "Join a franchise to generate your team story."}
+                </p>
+              )}
             </div>
             <p className="text-center text-[11px] font-medium text-ink/40">
               Instagram Story · WhatsApp Status · 9:16

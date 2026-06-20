@@ -10,10 +10,13 @@ export const APP_TAGLINE = "Where Village Legends Rise";
 /** Virtual franchise budget in coins (SRS §5). Coins are virtual only — no real money. */
 export const FRANCHISE_BUDGET = 10_000;
 
-/** Squad rules (SRS §7 / PRD). */
-export const MAX_SQUAD_SIZE = 10;
+/**
+ * Default roster cap. Admins can override per season via `Season.squadSize`
+ * (server caps + UI read that when set, falling back to this).
+ */
+export const MAX_SQUAD_SIZE = 4;
 export const PLAYING_SQUAD_SIZE = 4;
-export const BENCH_SIZE = 6;
+export const BENCH_SIZE = 0;
 
 /** Match-day lineup must be submitted this many minutes before kickoff (SRS §8). */
 export const LINEUP_LOCK_MINUTES_BEFORE = 30;

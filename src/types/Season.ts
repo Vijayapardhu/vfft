@@ -14,6 +14,9 @@ export interface Season extends Timestamps {
   championTeamId?: string;
   mvpPlayerId?: string;
 
+  /** Roster cap for this season (players per team). Defaults to MAX_SQUAD_SIZE. */
+  squadSize?: number;
+
   startDate?: Timestamp;
   endDate?: Timestamp;
 }

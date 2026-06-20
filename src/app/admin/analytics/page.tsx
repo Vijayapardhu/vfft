@@ -20,6 +20,7 @@ import { MAX_SQUAD_SIZE } from "@/constants/app";
 import { useTeams } from "@/hooks/useTeams";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useMatches } from "@/hooks/useMatches";
+import { useActiveSeason } from "@/hooks/useActiveSeason";
 import { usePlayerStandings, useTeamStandings } from "@/hooks/useLeaderboard";
 import {
   Coins,
@@ -49,6 +50,8 @@ export default function AdminAnalyticsPage() {
   const { data: matches, loading: mLoading } = useMatches();
   const { standings: teamStandings } = useTeamStandings();
   const { standings: playerStandings } = usePlayerStandings();
+  const { season } = useActiveSeason();
+  const squadCap = season?.squadSize && season.squadSize > 0 ? season.squadSize : MAX_SQUAD_SIZE;
 
   // --- Headline aggregates ---
   const approved = useMemo(() => players.filter((p) => p.status === "approved"), [players]);
@@ -175,7 +178,7 @@ export default function AdminAnalyticsPage() {
   }, [players]);
 
   const squadFillPct = teams.length
-    ? Math.round((teams.reduce((s, t) => s + (t.squad?.length ?? 0), 0) / (teams.length * MAX_SQUAD_SIZE)) * 100)
+    ? Math.round((teams.reduce((s, t) => s + (t.squad?.length ?? 0), 0) / (teams.length * squadCap)) * 100)
     : 0;
 
   const summaryCards = [
@@ -190,7 +193,7 @@ export default function AdminAnalyticsPage() {
     { label: "Coins Left", value: coinsLeft.toLocaleString(), icon: Coins, color: "bg-vgreen" },
     { label: "Avg. Sale", value: avgSale.toLocaleString(), icon: TrendingUp, color: "bg-vpurple" },
     { label: "Squad Fill", value: `${squadFillPct}%`, icon: Shield, color: "bg-vblue" },
-    { label: "Rosters Full", value: teams.filter((t) => (t.squad?.length ?? 0) >= MAX_SQUAD_SIZE).length, icon: Shield, color: "bg-vred" },
+    { label: "Rosters Full", value: teams.filter((t) => (t.squad?.length ?? 0) >= squadCap).length, icon: Shield, color: "bg-vred" },
   ];
 
   if (tLoading || pLoading || mLoading) return <Spinner />;

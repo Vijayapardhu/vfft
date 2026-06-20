@@ -1,8 +1,9 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
-import { MAX_SQUAD_SIZE, MAX_TRANSFERS_PER_SEASON } from "@/constants/app";
+import { MAX_TRANSFERS_PER_SEASON } from "@/constants/app";
 import { requireAdmin } from "@/server/auth";
 import { adminDb } from "@/server/firebaseAdmin";
+import { squadCapFrom } from "@/server/squadCap";
 
 export const runtime = "nodejs";
 
@@ -51,11 +52,11 @@ export async function POST(req: Request) {
       const toTeamId: string | null = t.toTeamId ?? null;
       if (!playerId) throw new Error("Transfer is missing a player.");
 
-      if (t.seasonId) {
-        const seasonSnap = await tx.get(db.collection("seasons").doc(t.seasonId));
-        if (seasonSnap.data()?.transfersLocked) {
-          throw new Error("Transfers are locked for this season (playoffs).");
-        }
+      const seasonSnap = t.seasonId
+        ? await tx.get(db.collection("seasons").doc(t.seasonId))
+        : null;
+      if (seasonSnap?.data()?.transfersLocked) {
+        throw new Error("Transfers are locked for this season (playoffs).");
       }
 
       const playerRef = db.collection("players").doc(playerId);
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
       if (toRef) {
         if ((toTeam.transfersUsed ?? 0) >= MAX_TRANSFERS_PER_SEASON)
           throw new Error("Buying team has used all its transfers this season.");
-        if ((toTeam.squad?.length ?? 0) >= MAX_SQUAD_SIZE)
+        if ((toTeam.squad?.length ?? 0) >= squadCapFrom(seasonSnap?.data()))
           throw new Error("Buying team's squad is full.");
         if ((toTeam.remainingPurse ?? 0) < amount)
           throw new Error("Buying team has insufficient purse.");

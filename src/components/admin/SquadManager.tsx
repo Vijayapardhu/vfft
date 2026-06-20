@@ -39,10 +39,13 @@ interface Props {
   teamId: string;
   teams: WithId<Team>[];
   players: WithId<Player>[];
+  /** Roster cap for the active season (defaults to MAX_SQUAD_SIZE). */
+  maxSquad?: number;
   onClose: () => void;
 }
 
-export function SquadManager({ teamId, teams, players, onClose }: Props) {
+export function SquadManager({ teamId, teams, players, maxSquad, onClose }: Props) {
+  const max = maxSquad && maxSquad > 0 ? maxSquad : MAX_SQUAD_SIZE;
   const team = useMemo(() => teams.find((t) => t.id === teamId), [teams, teamId]);
 
   // Live-derived from the realtime players list (robust against squad[] drift).
@@ -73,7 +76,7 @@ export function SquadManager({ teamId, teams, players, onClose }: Props) {
     return null;
   }
 
-  const squadFull = squadPlayers.length >= MAX_SQUAD_SIZE;
+  const squadFull = squadPlayers.length >= max;
 
   function flash(text: string, ok: boolean) {
     setMsg({ text, ok });
@@ -175,7 +178,7 @@ export function SquadManager({ teamId, teams, players, onClose }: Props) {
             <h2 className="truncate text-xl font-bold uppercase leading-tight">{team.name}</h2>
             <div className="mt-1 flex flex-wrap gap-1.5">
               <Badge variant="blue">
-                <Users className="h-3 w-3" /> {squadPlayers.length}/{MAX_SQUAD_SIZE}
+                <Users className="h-3 w-3" /> {squadPlayers.length}/{max}
               </Badge>
               <Badge variant="green">
                 <DollarSign className="h-3 w-3" /> {team.remainingPurse?.toLocaleString() ?? 0} left

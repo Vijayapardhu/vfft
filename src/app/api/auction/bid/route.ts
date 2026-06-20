@@ -1,9 +1,10 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
-import { AUCTION_BID_EXTEND_SECONDS, MAX_SQUAD_SIZE } from "@/constants/app";
+import { AUCTION_BID_EXTEND_SECONDS } from "@/constants/app";
 import { authenticate } from "@/server/auth";
 import { adminDb } from "@/server/firebaseAdmin";
 import { patchCurrentAuction, pushBidToFeed } from "@/server/liveState";
+import { squadCapFrom } from "@/server/squadCap";
 
 export const runtime = "nodejs";
 
@@ -58,7 +59,10 @@ export async function POST(req: Request) {
       if (auction.highestBidTeamId === teamId) {
         throw new Error("You already hold the highest bid.");
       }
-      if ((team.squad?.length ?? 0) >= MAX_SQUAD_SIZE) {
+      const seasonSnap = auction.seasonId
+        ? await tx.get(db.collection("seasons").doc(auction.seasonId))
+        : null;
+      if ((team.squad?.length ?? 0) >= squadCapFrom(seasonSnap?.data())) {
         throw new Error("Your squad is already full.");
       }
       const minBid = Math.max(auction.basePrice ?? 0, (auction.highestBid ?? 0) + 1);

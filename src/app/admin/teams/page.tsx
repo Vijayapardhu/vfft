@@ -39,7 +39,7 @@ const defaultForm: FormData = {
 export default function AdminTeamsPage() {
   const { data: teams, loading, error } = useTeams();
   const { data: players } = usePlayers();
-  const { seasonId } = useActiveSeason();
+  const { seasonId, season } = useActiveSeason();
   const [editing, setEditing] = useState<WithId<Team> | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -374,6 +374,7 @@ export default function AdminTeamsPage() {
           teamId={managingSquadId}
           teams={teams}
           players={players}
+          maxSquad={season?.squadSize}
           onClose={() => setManagingSquadId(null)}
         />
       )}
