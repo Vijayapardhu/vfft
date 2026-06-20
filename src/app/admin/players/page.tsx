@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useTeams } from "@/hooks/useTeams";
+import { toast } from "@/hooks/useToast";
 import { reviewPlayer } from "@/services/adminService";
 import { PlayerDetailDialog } from "@/components/player/PlayerDetailDialog";
 import {
@@ -75,12 +76,16 @@ export default function AdminPlayersPage() {
           updatedAt: serverTimestamp(),
         });
       }
+      toast({ type: "success", message: `Player marked ${status}.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to update player." });
     } finally {
       setSaving(false);
     }
   }
 
   async function removeTeam(playerId: string) {
+    if (!confirm("Remove this player from their team? Their seat is freed (no purse refund here — use Manage Squad for that).")) return;
     setSaving(true);
     try {
       // Keep both sides in sync: clear the player's teamId AND remove them from
@@ -98,6 +103,9 @@ export default function AdminPlayersPage() {
         });
       }
       await batch.commit();
+      toast({ type: "success", message: "Player removed from team." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to remove from team." });
     } finally {
       setSaving(false);
     }
@@ -106,13 +114,17 @@ export default function AdminPlayersPage() {
   async function bulkAction(status: ApprovalStatus) {
     setSaving(true);
     try {
+      const ids = [...selected];
       await Promise.all(
-        [...selected].map((id) =>
+        ids.map((id) =>
           reviewPlayer(id, status === "approved" ? "approve" : "reject"),
         ),
       );
       setSelected(new Set());
       setSelectMode(false);
+      toast({ type: "success", message: `${ids.length} player(s) ${status}.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Bulk action failed." });
     } finally {
       setSaving(false);
     }

@@ -37,3 +37,24 @@ export interface SoldEntry {
   price: number;
   ts: number;
 }
+
+/**
+ * RTDB `auction/spin` — the synchronized "random player" slot-machine reveal.
+ * The server picks the winner and stamps `startedAt`; every client reads the
+ * same node and animates the roll to land on the winner at the same instant.
+ */
+export interface AuctionSpinState {
+  /** Unique per spin so clients only animate a fresh roll once. */
+  spinId: string;
+  /** Names rolled through during the animation (display only). */
+  names: string[];
+  /** The chosen player. */
+  winnerId: string;
+  winnerIgn: string;
+  winnerPhotoURL: string | null;
+  winnerRole: string;
+  /** Epoch ms when the roll began (server clock). */
+  startedAt: number;
+  /** How long the reel rolls before locking on the winner (ms). */
+  durationMs: number;
+}

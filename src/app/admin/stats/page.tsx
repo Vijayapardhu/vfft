@@ -14,6 +14,7 @@ import { useMatches } from "@/hooks/useMatches";
 import { useTeams } from "@/hooks/useTeams";
 import { useTeamPlayers } from "@/hooks/usePlayers";
 import { useActiveSeason } from "@/hooks/useActiveSeason";
+import { toast } from "@/hooks/useToast";
 import { Save, RefreshCw } from "lucide-react";
 import { auth } from "@/firebase/auth";
 
@@ -46,7 +47,10 @@ export default function AdminStatsPage() {
   const { data: teamPlayers } = useTeamPlayers(selectedTeamId);
 
   async function handleSave() {
-    if (!selectedMatchId || !selectedPlayerId || !seasonId || !evidenceUrl) return;
+    if (!selectedMatchId || !selectedPlayerId || !seasonId || !evidenceUrl) {
+      toast({ type: "error", message: "Pick a match, player and upload evidence first." });
+      return;
+    }
     setSaving(true);
     try {
       const uid = auth.currentUser?.uid ?? "admin";
@@ -91,6 +95,9 @@ export default function AdminStatsPage() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ seasonId }),
       }).catch(() => {});
+      toast({ type: "success", message: "Player stats saved & standings recomputed." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save stats." });
     } finally {
       setSaving(false);
     }

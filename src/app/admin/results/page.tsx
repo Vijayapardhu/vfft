@@ -17,7 +17,7 @@ import { usePlayers } from "@/hooks/usePlayers";
 import { Save, RefreshCw } from "lucide-react";
 import { auth } from "@/firebase/auth";
 import { toast } from "@/hooks/useToast";
-import { sendNotification } from "@/services/adminService";
+import { advancePlayoffs, sendNotification } from "@/services/adminService";
 
 interface PlayerStat {
   playerId: string;
@@ -263,6 +263,9 @@ export default function AdminResultsPage() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ seasonId }),
       }).catch(() => {});
+      // Auto-advance the playoff bracket if this was a Q1/Eliminator/Q2 result
+      // (best-effort, non-blocking) — fills the next round's TBD slots.
+      advancePlayoffs(seasonId).catch(() => {});
       // Announce updated results to everyone (best-effort, non-blocking).
       const label = selectedMatch.name || `Match #${selectedMatch.matchNumber}`;
       sendNotification({

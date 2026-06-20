@@ -13,6 +13,7 @@ import { useHallOfFame } from "@/hooks/useHallOfFame";
 import { useTeams } from "@/hooks/useTeams";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useSeasons } from "@/hooks/useSeasons";
+import { toast } from "@/hooks/useToast";
 import { Spinner } from "@/components/ui/spinner";
 import { Plus, Trash2, Pencil } from "lucide-react";
 
@@ -80,8 +81,11 @@ export default function AdminHallOfFamePage() {
         },
         { merge: true },
       );
+      toast({ type: "success", message: "Hall of Fame entry saved." });
       reset();
       setCreating(false);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save entry." });
     } finally {
       setSaving(false);
     }
@@ -89,7 +93,12 @@ export default function AdminHallOfFamePage() {
 
   async function handleDelete(seasonId: string) {
     if (!confirm("Delete this entry?")) return;
-    await deleteDoc(doc(db, COLLECTIONS.hallOfFame, seasonId));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.hallOfFame, seasonId));
+      toast({ type: "success", message: "Entry deleted." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to delete entry." });
+    }
   }
 
   const selectedSeasonId = watch("seasonId");

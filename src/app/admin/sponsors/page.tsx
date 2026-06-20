@@ -19,6 +19,7 @@ import { Input, Label, FieldError } from "@/components/ui/input";
 import { ImageUploader } from "@/components/admin/ImageUploader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAllSponsors } from "@/hooks/useSponsors";
+import { toast } from "@/hooks/useToast";
 import { useForm } from "react-hook-form";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import type { Sponsor, WithId } from "@/types";
@@ -73,8 +74,11 @@ export default function AdminSponsorsPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: "Sponsor added." });
       setCreating(false);
       reset();
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to add sponsor." });
     } finally {
       setSaving(false);
     }
@@ -89,7 +93,10 @@ export default function AdminSponsorsPage() {
         priority: Number.isFinite(data.priority) ? data.priority : 0,
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: "Sponsor updated." });
       setEditing(null);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to update sponsor." });
     } finally {
       setSaving(false);
     }
@@ -97,7 +104,12 @@ export default function AdminSponsorsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this sponsor?")) return;
-    await deleteDoc(doc(db, COLLECTIONS.sponsors, id));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.sponsors, id));
+      toast({ type: "success", message: "Sponsor deleted." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to delete sponsor." });
+    }
   }
 
   function startEdit(item: WithId<Sponsor>) {

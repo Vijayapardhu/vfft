@@ -18,7 +18,8 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const seasonId = body?.seasonId;
-  const format = body?.format === "double" ? "double" : "single";
+  // single = 1 cycle, double = 2, triple = 3 (every pair meets that many times).
+  const cycles = body?.format === "triple" ? 3 : body?.format === "double" ? 2 : 1;
   const startAt = typeof body?.startAt === "number" ? body.startAt : Date.now();
   const intervalMinutes =
     typeof body?.intervalMinutes === "number" && body.intervalMinutes > 0
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const pairs = generateRoundRobin(teamIds, format === "double");
+    const pairs = generateRoundRobin(teamIds, cycles);
     const intervalMs = intervalMinutes * 60_000;
 
     const batch = db.batch();

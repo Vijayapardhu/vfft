@@ -65,7 +65,7 @@ export function recomputeAchievements(seasonId: string) {
 /** Auto-generate league fixtures (round-robin) for a season. */
 export function generateFixtures(input: {
   seasonId: string;
-  format: "single" | "double";
+  format: "single" | "double" | "triple";
   startAt?: number;
   intervalMinutes?: number;
   map?: string;
@@ -74,4 +74,25 @@ export function generateFixtures(input: {
     "/api/admin/fixtures/generate",
     input,
   );
+}
+
+/** Generate the IPL-style playoff bracket (Q1/Eliminator/Q2/Final) from the top-4 standings. */
+export function generatePlayoffs(input: {
+  seasonId: string;
+  startAt?: number;
+  intervalMinutes?: number;
+  map?: string;
+}) {
+  return apiPost<{ ok: true; count: number }>("/api/admin/fixtures/playoffs", {
+    ...input,
+    action: "generate",
+  });
+}
+
+/** Fill playoff placeholders (Q2/Final) from results so far. Idempotent. */
+export function advancePlayoffs(seasonId: string) {
+  return apiPost<{ ok: true; advanced: string[] }>("/api/admin/fixtures/playoffs", {
+    seasonId,
+    action: "advance",
+  });
 }

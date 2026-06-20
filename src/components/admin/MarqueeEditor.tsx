@@ -14,6 +14,7 @@ import { COLLECTIONS } from "@/firebase/collections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAllMarqueeItems } from "@/hooks/useMarquee";
+import { toast } from "@/hooks/useToast";
 import type { MarqueeItem, WithId } from "@/types";
 import { useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
@@ -31,17 +32,30 @@ export function MarqueeEditor() {
         order: items.length,
         createdAt: serverTimestamp(),
       });
+      toast({ type: "success", message: "Marquee item added." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to add item." });
     } finally {
       setSaving(false);
     }
   }
 
   async function updateItem(id: string, data: Partial<MarqueeItem>) {
-    await updateDoc(doc(db, COLLECTIONS.marquee, id), data);
+    try {
+      await updateDoc(doc(db, COLLECTIONS.marquee, id), data);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save change." });
+    }
   }
 
   async function deleteItem(id: string) {
-    await deleteDoc(doc(db, COLLECTIONS.marquee, id));
+    if (!confirm("Delete this marquee item?")) return;
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.marquee, id));
+      toast({ type: "success", message: "Marquee item deleted." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to delete item." });
+    }
   }
 
   if (loading) return <Spinner />;

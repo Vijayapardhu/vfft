@@ -14,7 +14,9 @@ import {
   clearAuctionBoard,
   finalizeAuction,
   hammerAuction,
+  spinRandomPlayer,
   startAuction,
+  stopAuction,
 } from "@/services/auctionService";
 import type { CurrentAuctionState } from "@/types";
 
@@ -63,6 +65,30 @@ export function AuctionAdminPanel({
     }
   }
 
+  /** Spin for a random player, then open the lot once the reel lands. */
+  async function spin() {
+    if (!seasonId) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await spinRandomPlayer(seasonId);
+      const startAt = res.startedAt + res.durationMs + 2000;
+      window.setTimeout(() => {
+        void startAuction({
+          playerId: res.playerId,
+          seasonId,
+          basePrice,
+          mode,
+          durationSeconds: duration,
+        }).catch(() => {});
+      }, Math.max(0, startAt - Date.now()));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Spin failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="mt-6 rounded-3xl border-4 border-dashed border-ink/40 bg-cream p-5">
       <h2 className="mb-3 text-lg font-bold uppercase">🎙️ Run the Auction</h2>
@@ -71,7 +97,8 @@ export function AuctionAdminPanel({
         <div className="space-y-3">
           <p className="text-sm font-medium text-ink/60">
             Bidding is live. Press <strong>Hammer</strong> to start the 3·2·1
-            countdown, or close the lot right now.
+            countdown, close the lot, or <strong>Stop</strong> to cancel it
+            entirely.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button
@@ -87,6 +114,16 @@ export function AuctionAdminPanel({
               onClick={() => run(() => finalizeAuction(activeAuction.auctionId))}
             >
               {activeAuction.currentBid > 0 ? "Sold Now" : "Mark Unsold"}
+            </Button>
+            <Button
+              variant="red"
+              disabled={busy}
+              onClick={() => {
+                if (!confirm("Stop the live auction? The player goes back to the pool — no sale, no purse change.")) return;
+                run(() => stopAuction(activeAuction.auctionId, seasonId ?? undefined));
+              }}
+            >
+              ⛔ Stop Auction
             </Button>
           </div>
         </div>
@@ -130,6 +167,26 @@ export function AuctionAdminPanel({
               No active season — create one before running the auction.
             </p>
           )}
+
+          {/* Random spin — uses the base price + mode chosen below. */}
+          <div className="rounded-2xl border-4 border-ink bg-vpurple/15 p-3">
+            <p className="mb-2 text-sm font-bold">
+              🎰 Let fate decide — spin for a random player (everyone sees it live).
+            </p>
+            <Button
+              variant="purple"
+              className="w-full"
+              disabled={busy || !seasonId || available.length === 0 || basePrice <= 0}
+              onClick={spin}
+            >
+              🎲 Spin Random Player ({available.length} left)
+            </Button>
+          </div>
+
+          <p className="text-center text-xs font-bold uppercase tracking-wide text-ink/40">
+            — or pick manually —
+          </p>
+
           <div>
             <Label htmlFor="ap-player">1 · Pick a player</Label>
             <Select

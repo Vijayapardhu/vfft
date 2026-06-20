@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/firebase/firestore";
 import { COLLECTIONS } from "@/firebase/collections";
 import { useCollectionData } from "@/hooks/useFirestore";
+import { toast } from "@/hooks/useToast";
 import { auth } from "@/firebase/auth";
 import { cn } from "@/lib/utils";
 import type { WithId } from "@/types";
@@ -83,11 +84,13 @@ export default function FranchiseApplicationsPage() {
   }
 
   async function approve(applicationId: string) {
+    if (!confirm("Approve this franchise application? This creates the team.")) return;
     setActionBusy(applicationId);
     try {
       await callApi("/api/admin/franchise/approve", { applicationId });
+      toast({ type: "success", message: "Application approved — team created." });
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to approve.");
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to approve." });
     } finally {
       setActionBusy(null);
     }
@@ -95,13 +98,17 @@ export default function FranchiseApplicationsPage() {
 
   async function reject(applicationId: string, action: "reject" | "correction") {
     const reason = rejectReason[applicationId] ?? "";
-    if (!reason.trim()) { alert("Please enter a reason."); return; }
+    if (!reason.trim()) { toast({ type: "error", message: "Please enter a reason." }); return; }
     setActionBusy(applicationId);
     try {
       await callApi("/api/admin/franchise/reject", { applicationId, reason, action });
       setShowReasonFor(null);
+      toast({
+        type: "success",
+        message: action === "correction" ? "Sent back for correction." : "Application rejected.",
+      });
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed.");
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed." });
     } finally {
       setActionBusy(null);
     }

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useCollectionData } from "@/hooks/useFirestore";
+import { toast } from "@/hooks/useToast";
 import { achievementsCol } from "@/firebase/collections";
 import { isFirebaseConfigured } from "@/firebase/config";
 import { Trash2, Award } from "lucide-react";
@@ -43,6 +44,9 @@ export default function AdminAchievementsPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: "Achievement granted." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to grant achievement." });
     } finally {
       setSaving(false);
     }
@@ -50,7 +54,12 @@ export default function AdminAchievementsPage() {
 
   async function handleRevoke(id: string) {
     if (!confirm("Revoke this achievement?")) return;
-    await deleteDoc(doc(db, COLLECTIONS.achievements, id));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.achievements, id));
+      toast({ type: "success", message: "Achievement revoked." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to revoke achievement." });
+    }
   }
 
   if (loading) return <Spinner />;

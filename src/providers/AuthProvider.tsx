@@ -2,6 +2,7 @@
 
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect } from "react";
+import { setAnalyticsUser } from "@/firebase/analytics";
 import { auth } from "@/firebase/auth";
 import { initAppCheck, isFirebaseConfigured } from "@/firebase/config";
 import { ensureUserDocument } from "@/services/authService";
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      void setAnalyticsUser(fbUser?.uid ?? null);
       if (!fbUser) {
         setAuth(null, null);
         return;

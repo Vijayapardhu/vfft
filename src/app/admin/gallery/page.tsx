@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { GalleryUploader } from "@/components/admin/GalleryUploader";
 import { useGalleryItems } from "@/hooks/useGallery";
+import { toast } from "@/hooks/useToast";
 import { Plus, Trash2, X } from "lucide-react";
 import type { GalleryType } from "@/types";
 
@@ -40,6 +41,9 @@ export default function AdminGalleryPage() {
         }),
       );
       await Promise.all(batch);
+      toast({ type: "success", message: `${items.length} image${items.length === 1 ? "" : "s"} added.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to upload images." });
     } finally {
       setUploading(false);
     }
@@ -47,7 +51,12 @@ export default function AdminGalleryPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this image?")) return;
-    await deleteDoc(doc(db, COLLECTIONS.gallery, id));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.gallery, id));
+      toast({ type: "success", message: "Image deleted." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to delete image." });
+    }
   }
 
   return (

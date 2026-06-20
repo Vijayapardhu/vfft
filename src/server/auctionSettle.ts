@@ -1,8 +1,10 @@
 import "server-only";
 import { FieldValue } from "firebase-admin/firestore";
-import { MAX_SQUAD_SIZE } from "@/constants/app";
+import { AUCTION_SETTLE_GRACE_SECONDS, MAX_SQUAD_SIZE } from "@/constants/app";
 import { adminDb } from "./firebaseAdmin";
 import { patchCurrentAuction, pushSold } from "./liveState";
+
+const SETTLE_GRACE_MS = AUCTION_SETTLE_GRACE_SECONDS * 1000;
 
 export interface SettleResult {
   status: "sold" | "unsold";
@@ -37,7 +39,11 @@ export async function settleAuction(
 
     if (opts.requireExpired) {
       const endsAtMs: number = auction.endsAt?.toMillis?.() ?? 0;
-      if (!endsAtMs || endsAtMs > Date.now()) {
+      // Grace buffer: a last-second bid arrives just after the on-screen "0" due
+      // to latency. Holding off the auto-close by SETTLE_GRACE_MS lets that bid
+      // commit (and reset the clock via anti-snipe) instead of losing the race
+      // to the auto-close and being rejected as "not active".
+      if (!endsAtMs || endsAtMs + SETTLE_GRACE_MS > Date.now()) {
         throw new Error("Auction has not expired yet.");
       }
     }

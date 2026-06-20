@@ -30,6 +30,15 @@ export const AUCTION_HAMMER_SECONDS = 3;
 /** Anti-snipe: a bid placed in the final window resets the clock to this many seconds. */
 export const AUCTION_BID_EXTEND_SECONDS = 8;
 
+/**
+ * Grace buffer before a lot can auto-close (seconds). The server refuses to
+ * settle until the deadline has passed by this margin, so a genuine last-second
+ * bid — which always arrives a little after the on-screen "0" due to network
+ * latency — still lands while the lot is active and triggers anti-snipe, instead
+ * of being beaten to the auction doc by the auto-close and rejected.
+ */
+export const AUCTION_SETTLE_GRACE_SECONDS = 2;
+
 /** Data-retention windows (SRS §29). */
 export const REJECTED_PLAYER_RETENTION_DAYS = 30;
 export const INACTIVE_PLAYER_RETENTION_DAYS = 90;

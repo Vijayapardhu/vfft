@@ -17,6 +17,7 @@ import { NewsEditor, type NewsFormData } from "@/components/admin/NewsEditor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAllNews } from "@/hooks/useNews";
+import { toast } from "@/hooks/useToast";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import type { NewsArticle, WithId } from "@/types";
 
@@ -63,7 +64,10 @@ export default function AdminNewsPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: data.isPublished ? "Article published." : "Draft saved." });
       setCreating(false);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save article." });
     } finally {
       setSaving(false);
     }
@@ -80,7 +84,10 @@ export default function AdminNewsPage() {
           : null,
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: "Article updated." });
       setEditing(null);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to update article." });
     } finally {
       setSaving(false);
     }
@@ -88,7 +95,12 @@ export default function AdminNewsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this article?")) return;
-    await deleteDoc(doc(db, COLLECTIONS.news, id));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.news, id));
+      toast({ type: "success", message: "Article deleted." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to delete article." });
+    }
   }
 
   if (creating) {

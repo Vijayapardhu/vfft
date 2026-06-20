@@ -16,6 +16,7 @@ import { disputesCol } from "@/firebase/collections";
 import { isFirebaseConfigured } from "@/firebase/config";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useMatches } from "@/hooks/useMatches";
+import { toast } from "@/hooks/useToast";
 import { auth } from "@/firebase/auth";
 import type { Dispute, WithId, DisputeStatus } from "@/types";
 import { CheckCircle, XCircle, MessageSquare } from "lucide-react";
@@ -47,6 +48,9 @@ export default function AdminDisputesPage() {
         update.resolvedAt = serverTimestamp();
       }
       await updateDoc(doc(db, COLLECTIONS.disputes, dispute.id), update);
+      toast({ type: "success", message: `Dispute marked ${status}.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to update dispute." });
     } finally {
       setSaving(false);
     }
@@ -63,6 +67,9 @@ export default function AdminDisputesPage() {
       });
       setResponding(null);
       setResponseText("");
+      toast({ type: "success", message: "Response saved." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save response." });
     } finally {
       setSaving(false);
     }

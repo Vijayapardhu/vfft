@@ -38,6 +38,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCollectionData } from "@/hooks/useFirestore";
 import { useTeams } from "@/hooks/useTeams";
 import { usePlayers } from "@/hooks/usePlayers";
+import { toast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
 import type { Season, SeasonStatus, WithId } from "@/types";
 
@@ -178,6 +179,9 @@ function ChampionMvpPicker({ season }: { season: WithId<Season> }) {
         mvpPlayerId: mvp || null,
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: "Champion & MVP saved." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save." });
     } finally {
       setSaving(false);
     }
@@ -304,6 +308,9 @@ function SeasonCard({
         updatedAt: serverTimestamp(),
       });
       await batch.commit();
+      toast({ type: "success", message: `${season.name} is now ${status}.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to update status." });
     } finally {
       setSaving(false);
     }
@@ -324,6 +331,9 @@ function SeasonCard({
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: `Created Season ${nextNum} from "${season.name}".` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to duplicate season." });
     } finally {
       setSaving(false);
     }
@@ -331,11 +341,16 @@ function SeasonCard({
 
   async function handleDelete() {
     if (season.isActive) {
-      alert("Cannot delete the active season. Archive it first.");
+      toast({ type: "error", message: "Cannot delete the active season. Archive it first." });
       return;
     }
     if (!confirm(`Permanently delete "${season.name}"? This cannot be undone.`)) return;
-    await deleteDoc(doc(db, COLLECTIONS.seasons, season.id));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.seasons, season.id));
+      toast({ type: "success", message: `${season.name} deleted.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to delete season." });
+    }
   }
 
   const headerBg = STATUS_HEADER[season.status];
@@ -548,7 +563,10 @@ export default function AdminSeasonsPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: `${data.name} created.` });
       setCreating(false);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to create season." });
     } finally {
       setSaving(false);
     }
@@ -567,7 +585,10 @@ export default function AdminSeasonsPage() {
         endDate: toTimestamp(data.endDate),
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: `${data.name} updated.` });
       setEditing(null);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to update season." });
     } finally {
       setSaving(false);
     }

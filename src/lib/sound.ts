@@ -152,6 +152,20 @@ export const sound = {
   /** Trumpet fanfare — new player enters the auction block. */
   fanfare: () => { void playMp3("/sounds/fanfare.mp3"); },
 
+  /** Short blip for each name flick of the random-spin reel. */
+  spinTick: () => {
+    tone(720, 30, 0.08, "square");
+    vibrate(8);
+  },
+
+  /** Celebratory landing — the spin locked on a player. */
+  spinWin: () => {
+    chord(523, 784, 500, 0.28, "triangle"); // C5 + G5
+    setTimeout(() => chord(659, 988, 600, 0.28, "triangle"), 130); // E5 + B5
+    void playMp3("/sounds/fanfare.mp3");
+    vibrate([40, 40, 40, 40, 160]);
+  },
+
   /** Descending disappointment — auction unsold. */
   unsold: () => {
     void playMp3("/sounds/fail-trumpet.mp3");

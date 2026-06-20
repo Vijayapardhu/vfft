@@ -12,6 +12,7 @@ import { useCollectionData } from "@/hooks/useFirestore";
 import { usePlayers } from "@/hooks/usePlayers";
 import { useTeams } from "@/hooks/useTeams";
 import { processTransfer } from "@/services/adminService";
+import { toast } from "@/hooks/useToast";
 import { CheckCircle, XCircle } from "lucide-react";
 import type { Transfer, WithId } from "@/types";
 
@@ -37,8 +38,10 @@ export default function AdminTransfersPage() {
     setError(null);
     try {
       await processTransfer(transfer.id, action);
+      toast({ type: "success", message: action === "approve" ? "Transfer approved." : "Transfer rejected." });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Transfer action failed.");
+      toast({ type: "error", message: e instanceof Error ? e.message : "Transfer action failed." });
     } finally {
       setSaving(false);
     }

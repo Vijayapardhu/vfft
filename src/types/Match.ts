@@ -24,6 +24,14 @@ export interface Match extends Timestamps {
   status: MatchStatus;
   stage: MatchStage;
 
+  /**
+   * Playoff bracket placeholders. When a knockout match's participants aren't
+   * known yet (e.g. "Winner of Qualifier 1"), the team slot is empty and the
+   * label describes who fills it. Cleared automatically as results come in.
+   */
+  slot1Label?: string;
+  slot2Label?: string;
+
   /** Set when team leaders have been pinged to submit their match-day lineup. */
   lineupRemindedAt?: Timestamp;
 }

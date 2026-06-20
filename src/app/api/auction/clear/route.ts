@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
-import { adminRtdb } from "@/server/firebaseAdmin";
+import { stopActiveAuctions } from "@/server/auctionStop";
 
 export const runtime = "nodejs";
 
-/** Admin: wipe auction/current + feed from RTDB so the board shows "no lot". */
+/**
+ * Admin: clear/skip the current lot. Cancels any active Firestore auction
+ * (marks it unsold — no sale) AND wipes the RTDB live board + feed, so the
+ * board shows "no lot" and a fresh auction can be started immediately.
+ */
 export async function POST(req: Request) {
   const admin = await requireAdmin(req);
   if (!admin) return NextResponse.json({ error: "Admin only." }, { status: 403 });
 
-  await adminRtdb().ref("auction/current").set(null);
-  await adminRtdb().ref("auction/feed").set(null);
+  const stopped = await stopActiveAuctions({ performedBy: admin.uid });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, stopped });
 }

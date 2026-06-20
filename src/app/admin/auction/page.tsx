@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, query, where } from "firebase/firestore";
 import {
   AlertTriangle,
+  Ban,
   CheckCircle,
+  Dices,
   Gavel,
   Hammer,
   Play,
-  RotateCcw,
   Timer,
   Trophy,
   UserRound,
@@ -17,6 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AuctionSpinner } from "@/components/auction/AuctionSpinner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input, Label, Select } from "@/components/ui/input";
@@ -234,15 +236,44 @@ export default function AdminAuctionPage() {
     setSaving(true);
     try {
       const body: Record<string, unknown> = { playerId: selectedPlayer, seasonId, basePrice, mode };
-      if (mode === "timed") body.timerSeconds = timerSecs;
+      if (mode === "timed") body.durationSeconds = timerSecs;
       const { ok, data } = await callAuctionAPI("/api/auction/start", body);
       if (!ok) {
-        alert((data as { error?: string })?.error ?? "Failed to start auction");
+        setResultMsg({ ok: false, text: (data as { error?: string })?.error ?? "Failed to start auction" });
         return;
       }
       setShowStartForm(false);
       setSelectedPlayer("");
       setResultMsg(null);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSpin() {
+    if (!seasonId || saving) return;
+    if (availablePlayers.length === 0) {
+      setResultMsg({ ok: false, text: "No available players left to spin." });
+      return;
+    }
+    setSaving(true);
+    setResultMsg(null);
+    try {
+      const { ok, data } = await callAuctionAPI("/api/auction/spin", { seasonId });
+      const d = data as { playerId?: string; ign?: string; startedAt?: number; durationMs?: number; error?: string };
+      if (!ok || !d.playerId || !d.startedAt || !d.durationMs) {
+        setResultMsg({ ok: false, text: d.error ?? "Failed to spin" });
+        return;
+      }
+      setShowStartForm(false);
+      // Open the real lot for the winner once the reel lands + the reveal shows.
+      const startAt = d.startedAt + d.durationMs + 2000;
+      const winnerId = d.playerId;
+      window.setTimeout(() => {
+        const body: Record<string, unknown> = { playerId: winnerId, seasonId, basePrice, mode };
+        if (mode === "timed") body.durationSeconds = timerSecs;
+        void callAuctionAPI("/api/auction/start", body);
+      }, Math.max(0, startAt - Date.now()));
     } finally {
       setSaving(false);
     }
@@ -254,7 +285,8 @@ export default function AdminAuctionPage() {
     setSaving(true);
     try {
       const { ok, data } = await callAuctionAPI("/api/auction/hammer", { auctionId: auction.auctionId });
-      if (!ok) alert((data as { error?: string })?.error ?? "Failed to close bidding");
+      if (!ok) setResultMsg({ ok: false, text: (data as { error?: string })?.error ?? "Failed to close bidding" });
+      else setResultMsg({ ok: true, text: "Bidding closing — final countdown started" });
     } finally {
       setSaving(false);
     }
@@ -267,7 +299,7 @@ export default function AdminAuctionPage() {
     try {
       const { ok, data } = await callAuctionAPI("/api/auction/finalize", { auctionId: auction.auctionId });
       const d = data as { status?: string; ign?: string; teamName?: string; soldPrice?: number; error?: string };
-      if (!ok) { alert(d.error ?? "Failed to settle auction"); return; }
+      if (!ok) { setResultMsg({ ok: false, text: d.error ?? "Failed to settle auction" }); return; }
       if (d.status === "sold") {
         setResultMsg({ ok: true, text: `Sold! ${d.ign ?? "Player"} → ${d.teamName ?? "—"} for ${(d.soldPrice ?? 0).toLocaleString()} coins` });
       } else {
@@ -278,13 +310,16 @@ export default function AdminAuctionPage() {
     }
   }
 
-  async function handleClear() {
-    if (!confirm("Reset the auction board? This clears the current lot without settling.")) return;
+  async function handleStop() {
+    if (!confirm("Stop the live auction now? The current player goes back to the pool unsold — no sale, no purse change.")) return;
     setSaving(true);
     try {
-      const { ok, data } = await callAuctionAPI("/api/auction/clear", {});
-      if (!ok) alert((data as { error?: string })?.error ?? "Failed to clear auction");
-      else setResultMsg({ ok: true, text: "Auction board cleared" });
+      const { ok, data } = await callAuctionAPI("/api/auction/stop", {
+        auctionId: auction?.auctionId,
+        seasonId,
+      });
+      if (!ok) setResultMsg({ ok: false, text: (data as { error?: string })?.error ?? "Failed to stop auction" });
+      else setResultMsg({ ok: true, text: "Auction stopped — player returned to the pool" });
     } finally {
       setSaving(false);
     }
@@ -311,7 +346,7 @@ export default function AdminAuctionPage() {
     );
     if (!first) return;
     const typed = prompt('Type RESET to confirm:');
-    if (typed?.trim() !== "RESET") { alert("Cancelled."); return; }
+    if (typed?.trim() !== "RESET") { setResultMsg({ ok: false, text: "Reset cancelled." }); return; }
     setSaving(true);
     try {
       const { ok, data } = await callAuctionAPI("/api/admin/reset-auction", {
@@ -320,7 +355,7 @@ export default function AdminAuctionPage() {
         confirm: "RESET_CONFIRMED",
       });
       const d = data as { results?: { auctions: number; players: number; teams: number; applications: number }; error?: string };
-      if (!ok) { alert(d.error ?? "Reset failed"); return; }
+      if (!ok) { setResultMsg({ ok: false, text: d.error ?? "Reset failed" }); return; }
       const r = d.results;
       setResultMsg({
         ok: true,
@@ -345,16 +380,32 @@ export default function AdminAuctionPage() {
 
   return (
     <div>
+      <AuctionSpinner />
       <AdminHeader
         title="Auction"
         subtitle={auction ? `Live — ${auction.playerName}` : "No active auction"}
         action={
           <div className="flex flex-wrap gap-2">
             {auction && (
-              <Button variant="red" size="sm" onClick={handleClear} disabled={saving}>
-                <RotateCcw className="h-4 w-4" /> Clear Board
+              <Button variant="red" size="sm" onClick={handleStop} disabled={saving}>
+                <Ban className="h-4 w-4" /> Stop Auction
               </Button>
             )}
+            <Button
+              variant="purple"
+              size="sm"
+              onClick={handleSpin}
+              disabled={!!auction || saving || availablePlayers.length === 0}
+              title={
+                auction
+                  ? "Settle the current auction first"
+                  : availablePlayers.length === 0
+                    ? "No available players"
+                    : "Pick a random player with a live spin"
+              }
+            >
+              <Dices className="h-4 w-4" /> Spin Random
+            </Button>
             <Button
               variant="yellow"
               size="sm"
@@ -551,11 +602,11 @@ export default function AdminAuctionPage() {
                 </Button>
                 <Button
                   variant="red"
-                  onClick={handleClear}
+                  onClick={handleStop}
                   disabled={saving}
                 >
-                  <RotateCcw className="h-4 w-4" />
-                  Clear &amp; Skip
+                  <Ban className="h-4 w-4" />
+                  Stop Auction
                 </Button>
               </div>
             </div>

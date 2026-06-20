@@ -5,6 +5,7 @@ import { Gavel, UserRound, Volume2, VolumeX, Zap } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { AuctionAdminPanel } from "@/components/auction/AuctionAdminPanel";
+import { AuctionSpinner } from "@/components/auction/AuctionSpinner";
 import { AuctionSummary } from "@/components/auction/AuctionSummary";
 import { BidFeed } from "@/components/auction/BidFeed";
 import { Confetti } from "@/components/auction/Confetti";
@@ -155,6 +156,7 @@ export function AuctionRoom() {
   if (!auction) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8">
+        <AuctionSpinner />
         <EmptyState
           icon={Gavel}
           title="No player up right now"
@@ -204,6 +206,7 @@ export function AuctionRoom() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
+      <AuctionSpinner />
       <div className="relative overflow-hidden rounded-3xl border-4 border-ink bg-cream shadow-brutal-lg">
         {auction.status === "sold" && <Confetti />}
 

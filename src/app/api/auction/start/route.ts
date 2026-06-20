@@ -1,7 +1,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/server/auth";
-import { adminDb } from "@/server/firebaseAdmin";
+import { adminDb, adminRtdb } from "@/server/firebaseAdmin";
 import { clearBidFeed, setCurrentAuction } from "@/server/liveState";
 
 export const runtime = "nodejs";
@@ -88,6 +88,8 @@ export async function POST(req: Request) {
       endsAt: endsAtMs,
     });
     await clearBidFeed();
+    // The reveal is over once the real lot is live — clear the reel.
+    await adminRtdb().ref("auction/spin").set(null);
 
     return NextResponse.json({ ok: true, auctionId: result.auctionId });
   } catch (e) {

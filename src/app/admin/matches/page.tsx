@@ -15,7 +15,7 @@ import { useMatches } from "@/hooks/useMatches";
 import { useTeams } from "@/hooks/useTeams";
 import { useActiveSeason } from "@/hooks/useActiveSeason";
 import { useForm } from "react-hook-form";
-import { generateFixtures, setMatchLiveState } from "@/services/adminService";
+import { advancePlayoffs, generateFixtures, generatePlayoffs, setMatchLiveState } from "@/services/adminService";
 import { remindLineup } from "@/services/lineupService";
 import { toast } from "@/hooks/useToast";
 import { Plus, Pencil, Trash2, Play, CheckCircle, XCircle, BellRing } from "lucide-react";
@@ -53,9 +53,80 @@ export default function AdminMatchesPage() {
   const [editing, setEditing] = useState<WithId<Match> | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [genFormat, setGenFormat] = useState<"single" | "double">("single");
+  const [genFormat, setGenFormat] = useState<"single" | "double" | "triple">("single");
+  const [genStartAt, setGenStartAt] = useState("");
+  const [genInterval, setGenInterval] = useState(60);
+  const [genMap, setGenMap] = useState("Bermuda");
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState<string | null>(null);
+  const [poBusy, setPoBusy] = useState(false);
+
+  // The four IPL playoff lots, in bracket order.
+  const PLAYOFF_ORDER: { stage: MatchStage; label: string }[] = [
+    { stage: "qualifier1", label: "Qualifier 1" },
+    { stage: "eliminator", label: "Eliminator" },
+    { stage: "qualifier2", label: "Qualifier 2" },
+    { stage: "final", label: "Grand Final" },
+  ];
+  const playoffMatches = PLAYOFF_ORDER
+    .map((p) => matches.find((m) => m.stage === p.stage))
+    .filter((m): m is WithId<Match> => Boolean(m));
+  const hasPlayoffs = playoffMatches.length > 0;
+
+  function slotLabel(match: WithId<Match>, slot: 1 | 2): string {
+    const id = slot === 1 ? match.team1Id : match.team2Id;
+    const t = teams.find((x) => x.id === id);
+    if (t) return t.name;
+    return (slot === 1 ? match.slot1Label : match.slot2Label) ?? "TBD";
+  }
+
+  async function handleGeneratePlayoffs() {
+    if (!seasonId) {
+      toast({ type: "error", message: "No active season — create one first." });
+      return;
+    }
+    if (!confirm("Generate the IPL playoff bracket from the current top-4 standings?\n\n• Qualifier 1: 1st vs 2nd\n• Eliminator: 3rd vs 4th\n• Qualifier 2 & Final: filled automatically as results come in")) return;
+    setPoBusy(true);
+    try {
+      const res = await generatePlayoffs({
+        seasonId,
+        startAt: genStartAt ? new Date(genStartAt).getTime() : undefined,
+        intervalMinutes: genInterval > 0 ? genInterval : undefined,
+        map: genMap.trim() || undefined,
+      });
+      toast({ type: "success", message: `Created ${res.count} playoff matches.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to generate playoffs." });
+    } finally {
+      setPoBusy(false);
+    }
+  }
+
+  async function handleAdvancePlayoffs() {
+    if (!seasonId) return;
+    setPoBusy(true);
+    try {
+      const res = await advancePlayoffs(seasonId);
+      toast({
+        type: res.advanced.length ? "success" : "info",
+        message: res.advanced.length
+          ? `Advanced — ${res.advanced.join("; ")}`
+          : "Nothing to advance yet. Record Q1 / Eliminator / Q2 results first.",
+      });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to advance bracket." });
+    } finally {
+      setPoBusy(false);
+    }
+  }
+
+  // Projected match count for the chosen format (n·(n-1)/2 × cycles).
+  const projectedMatches = (() => {
+    const n = teams.length;
+    if (n < 2) return 0;
+    const cycles = genFormat === "triple" ? 3 : genFormat === "double" ? 2 : 1;
+    return (n * (n - 1) * cycles) / 2;
+  })();
 
   async function handleGenerate() {
     if (!seasonId) {
@@ -64,14 +135,20 @@ export default function AdminMatchesPage() {
     }
     if (
       !confirm(
-        `Generate ${genFormat} round-robin fixtures for every team in the season?`,
+        `Generate a ${genFormat} round-robin (${projectedMatches} matches) for every team in the season?`,
       )
     )
       return;
     setGenBusy(true);
     setGenMsg(null);
     try {
-      const res = await generateFixtures({ seasonId, format: genFormat });
+      const res = await generateFixtures({
+        seasonId,
+        format: genFormat,
+        startAt: genStartAt ? new Date(genStartAt).getTime() : undefined,
+        intervalMinutes: genInterval > 0 ? genInterval : undefined,
+        map: genMap.trim() || undefined,
+      });
       setGenMsg(`Generated ${res.count} matches.`);
     } catch (e) {
       setGenMsg(e instanceof Error ? e.message : "Failed to generate fixtures.");
@@ -135,9 +212,12 @@ export default function AdminMatchesPage() {
           createdAt: serverTimestamp(),
         });
       }
+      toast({ type: "success", message: editing ? "Match updated." : "Match created." });
       setCreating(false);
       setEditing(null);
       reset(defaultForm);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save match." });
     } finally {
       setSaving(false);
     }
@@ -145,7 +225,12 @@ export default function AdminMatchesPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this match?")) return;
-    await deleteDoc(doc(db, COLLECTIONS.matches, id));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.matches, id));
+      toast({ type: "success", message: "Match deleted." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to delete match." });
+    }
   }
 
   async function updateMatchStatus(match: WithId<Match>, status: MatchStatus) {
@@ -153,6 +238,9 @@ export default function AdminMatchesPage() {
     try {
       // Routes through the server so it also broadcasts live state to RTDB.
       await setMatchLiveState(match.id, status);
+      toast({ type: "success", message: `Match marked ${status}.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to update match." });
     } finally {
       setSaving(false);
     }
@@ -180,7 +268,7 @@ export default function AdminMatchesPage() {
             <div className="flex items-center gap-3">
               <div className="text-center">
                 <img src={team1?.logoUrl || "/placeholder-team.svg"} alt={team1?.name} className="mx-auto mb-1 h-10 w-10 rounded-xl border-2 border-ink object-cover" />
-                <p className="truncate text-xs font-bold">{team1?.name ?? "TBD"}</p>
+                <p className="truncate text-xs font-bold">{team1?.name ?? match.slot1Label ?? "TBD"}</p>
               </div>
               <div className="text-center">
                 <p className="text-lg font-bold">VS</p>
@@ -188,7 +276,7 @@ export default function AdminMatchesPage() {
               </div>
               <div className="text-center">
                 <img src={team2?.logoUrl || "/placeholder-team.svg"} alt={team2?.name} className="mx-auto mb-1 h-10 w-10 rounded-xl border-2 border-ink object-cover" />
-                <p className="truncate text-xs font-bold">{team2?.name ?? "TBD"}</p>
+                <p className="truncate text-xs font-bold">{team2?.name ?? match.slot2Label ?? "TBD"}</p>
               </div>
             </div>
             <div className="text-right text-xs font-medium text-ink/60">
@@ -242,20 +330,101 @@ export default function AdminMatchesPage() {
       />
 
       <Card className="mb-6">
-        <CardContent className="flex flex-wrap items-center gap-3 p-4">
-          <span className="text-sm font-bold uppercase">⚡ Auto Fixtures</span>
-          <Select
-            value={genFormat}
-            onChange={(e) => setGenFormat(e.target.value as "single" | "double")}
-            className="max-w-[200px]"
-          >
-            <option value="single">Single round robin</option>
-            <option value="double">Double round robin</option>
-          </Select>
-          <Button variant="blue" size="sm" onClick={handleGenerate} disabled={genBusy || !seasonId}>
-            {genBusy ? "Generating…" : "Generate Fixtures"}
-          </Button>
-          {genMsg && <span className="text-sm font-bold text-ink/60">{genMsg}</span>}
+        <CardHeader>
+          <CardTitle>⚡ Auto Fixtures</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 p-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <Label>Format</Label>
+              <Select
+                value={genFormat}
+                onChange={(e) => setGenFormat(e.target.value as "single" | "double" | "triple")}
+              >
+                <option value="single">Single round robin (×1)</option>
+                <option value="double">Double round robin (×2)</option>
+                <option value="triple">Triple round robin (×3)</option>
+              </Select>
+            </div>
+            <div>
+              <Label>First match at</Label>
+              <Input
+                type="datetime-local"
+                value={genStartAt}
+                onChange={(e) => setGenStartAt(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Gap between matches (min)</Label>
+              <Input
+                type="number"
+                min={5}
+                step={5}
+                value={genInterval}
+                onChange={(e) => setGenInterval(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <Label>Default map</Label>
+              <Input
+                value={genMap}
+                onChange={(e) => setGenMap(e.target.value)}
+                placeholder="Bermuda"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 border-t-2 border-ink/10 pt-3">
+            <Button variant="blue" size="sm" onClick={handleGenerate} disabled={genBusy || !seasonId || teams.length < 2}>
+              {genBusy ? "Generating…" : `Generate ${projectedMatches} Matches`}
+            </Button>
+            <span className="text-sm font-medium text-ink/60">
+              {teams.length} team{teams.length === 1 ? "" : "s"} → {projectedMatches} league matches
+            </span>
+            {genMsg && <span className="text-sm font-bold text-ink">{genMsg}</span>}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>🏆 Playoff Bracket (IPL format)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 p-4">
+          <p className="text-sm font-medium text-ink/60">
+            Q1: 1st vs 2nd · Eliminator: 3rd vs 4th · Q2: Q1 loser vs Eliminator winner · Final: Q1 winner vs Q2 winner.
+            Q2 &amp; Final fill in automatically as results are entered.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="blue" size="sm" onClick={handleGeneratePlayoffs} disabled={poBusy || !seasonId || hasPlayoffs}>
+              {poBusy ? "Working…" : "Generate Bracket"}
+            </Button>
+            <Button variant="cream" size="sm" onClick={handleAdvancePlayoffs} disabled={poBusy || !seasonId || !hasPlayoffs}>
+              Advance Bracket
+            </Button>
+            {hasPlayoffs && (
+              <span className="text-xs font-bold text-ink/50">Bracket exists — delete its matches to regenerate.</span>
+            )}
+          </div>
+
+          {hasPlayoffs && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {PLAYOFF_ORDER.map(({ stage, label }) => {
+                const m = matches.find((x) => x.stage === stage);
+                if (!m) return null;
+                return (
+                  <div key={stage} className="rounded-2xl border-2 border-ink/15 bg-cream px-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wide text-ink/50">{label}</span>
+                      <Badge variant={statusBadge[m.status]}>{m.status}</Badge>
+                    </div>
+                    <p className="mt-1 truncate text-sm font-bold">
+                      {slotLabel(m, 1)} <span className="text-ink/40">vs</span> {slotLabel(m, 2)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -17,6 +17,7 @@ import { useTeams } from "@/hooks/useTeams";
 import { usePlayers } from "@/hooks/usePlayers";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/useToast";
 
 const schema = z.object({
   heroTitle: z.string().min(1, "Required"),
@@ -85,6 +86,9 @@ export default function AdminHomePage() {
         },
         { merge: true },
       );
+      toast({ type: "success", message: "Home content saved." });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save home content." });
     } finally {
       setSaving(false);
     }

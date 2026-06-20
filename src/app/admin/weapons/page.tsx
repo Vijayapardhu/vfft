@@ -22,6 +22,7 @@ import { ImageUploader } from "@/components/admin/ImageUploader";
 import { FF_WEAPONS, FF_WEAPON_CATEGORIES } from "@/constants/weapons";
 import { useForm } from "react-hook-form";
 import { useWeapons } from "@/hooks/useWeapons";
+import { toast } from "@/hooks/useToast";
 import type { Weapon, WithId } from "@/types";
 
 interface FormData {
@@ -69,7 +70,7 @@ export default function AdminWeaponsPage() {
       const ref = doc(db, COLLECTIONS.weapons, id);
       const existing = await getDoc(ref);
       if (existing.exists()) {
-        alert(`A weapon with id "${id}" already exists.`);
+        toast({ type: "error", message: `A weapon with id "${id}" already exists.` });
         return;
       }
       await setDoc(ref, {
@@ -78,8 +79,11 @@ export default function AdminWeaponsPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: `Weapon "${id}" created.` });
       setCreating(false);
       reset();
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to create weapon." });
     } finally {
       setSaving(false);
     }
@@ -95,7 +99,10 @@ export default function AdminWeaponsPage() {
         imageURL: data.imageURL ?? "",
         updatedAt: serverTimestamp(),
       });
+      toast({ type: "success", message: "Weapon updated." });
       setEditing(null);
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to update weapon." });
     } finally {
       setSaving(false);
     }
@@ -103,7 +110,12 @@ export default function AdminWeaponsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this weapon?")) return;
-    await deleteDoc(doc(db, COLLECTIONS.weapons, id));
+    try {
+      await deleteDoc(doc(db, COLLECTIONS.weapons, id));
+      toast({ type: "success", message: `Weapon "${id}" deleted.` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to delete weapon." });
+    }
   }
 
   function startEdit(item: WithId<Weapon>) {
@@ -120,6 +132,7 @@ export default function AdminWeaponsPage() {
     if (!confirm(`Seed ${FF_WEAPONS.length} weapons from constants? Duplicate IDs will be skipped.`)) return;
     setSeeding(true);
     try {
+      let added = 0;
       for (const w of FF_WEAPONS) {
         // Skip codes that already exist; write the rest keyed by weapon code.
         const existing = weapons.find((x) => x.id === w.id);
@@ -129,8 +142,12 @@ export default function AdminWeaponsPage() {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
+          added++;
         }
       }
+      toast({ type: "success", message: `Seeded ${added} new weapon${added === 1 ? "" : "s"} (${FF_WEAPONS.length - added} already existed).` });
+    } catch (e) {
+      toast({ type: "error", message: e instanceof Error ? e.message : "Failed to seed weapons." });
     } finally {
       setSeeding(false);
     }
