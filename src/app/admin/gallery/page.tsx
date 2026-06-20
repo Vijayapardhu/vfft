@@ -24,13 +24,18 @@ const galleryTypes: { label: string; value: GalleryType | null }[] = [
 
 export default function AdminGalleryPage() {
   const [filter, setFilter] = useState<GalleryType | null>(null);
-  const [uploading, setUploading] = useState(false);
+  // `showUploader` = panel open; `saving` = a write is in progress. These were
+  // previously one flag, which left the "Upload All" button permanently disabled.
+  const [showUploader, setShowUploader] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const { data: items, loading, error } = useGalleryItems(filter);
 
-  async function handleUpload(items: { title: string; imageUrl: string; type: GalleryType; description?: string }[]) {
-    setUploading(true);
+  async function handleUpload(
+    items: { title: string; imageUrl: string; type: GalleryType; description?: string }[],
+  ): Promise<boolean> {
+    setSaving(true);
     try {
       const batch = items.map((item) =>
         addDoc(collection(db, COLLECTIONS.gallery), {
@@ -42,10 +47,12 @@ export default function AdminGalleryPage() {
       );
       await Promise.all(batch);
       toast({ type: "success", message: `${items.length} image${items.length === 1 ? "" : "s"} added.` });
+      return true;
     } catch (e) {
       toast({ type: "error", message: e instanceof Error ? e.message : "Failed to upload images." });
+      return false;
     } finally {
-      setUploading(false);
+      setSaving(false);
     }
   }
 
@@ -65,7 +72,7 @@ export default function AdminGalleryPage() {
         title="Gallery"
         subtitle="Manage gallery images"
         action={
-          <Button variant="yellow" size="sm" onClick={() => setUploading(true)}>
+          <Button variant="yellow" size="sm" onClick={() => setShowUploader(true)}>
             <Plus className="h-4 w-4" />
             Upload Images
           </Button>
@@ -87,10 +94,15 @@ export default function AdminGalleryPage() {
         ))}
       </div>
 
-      {uploading && (
+      {showUploader && (
         <div className="mb-6">
-          <GalleryUploader onSave={async (items) => { await handleUpload(items); setUploading(false); }} saving={uploading} />
-          <Button variant="cream" size="sm" onClick={() => setUploading(false)} className="mt-3">
+          <GalleryUploader
+            onSave={async (items) => {
+              if (await handleUpload(items)) setShowUploader(false);
+            }}
+            saving={saving}
+          />
+          <Button variant="cream" size="sm" onClick={() => setShowUploader(false)} className="mt-3">
             Cancel
           </Button>
         </div>

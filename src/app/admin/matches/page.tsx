@@ -309,7 +309,11 @@ export default function AdminMatchesPage() {
     );
   }
 
-  const filterByStatus = (status: MatchStatus) => matches.filter((m) => m.status === status);
+  // Order every tab by match number (Match #1, #2, #3 …).
+  const filterByStatus = (status: MatchStatus) =>
+    matches
+      .filter((m) => m.status === status)
+      .sort((a, b) => (a.matchNumber ?? 0) - (b.matchNumber ?? 0));
 
   const tabs = [
     { id: "upcoming", label: `Upcoming (${filterByStatus("upcoming").length})`, content: <div className="grid gap-3 sm:grid-cols-2">{filterByStatus("upcoming").map(renderMatchCard)}</div> },
