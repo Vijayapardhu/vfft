@@ -45,11 +45,17 @@ export async function POST(req: Request) {
       if (player.status !== "approved") throw new Error("Player is not approved.");
       if (player.teamId) throw new Error("Player is already signed to a team.");
 
+      // Auto-stop any running lot for this season instead of blocking — opening
+      // a new auction explicitly supersedes the old one (cancels it as unsold,
+      // no sale / no purse change). This also clears any "stuck active" doc that
+      // would otherwise cause "Another auction is already active".
       const activeSnap = await tx.get(
-        db.collection("auctions").where("status", "==", "active").limit(5),
+        db.collection("auctions").where("status", "==", "active").limit(20),
       );
-      if (activeSnap.docs.some((d) => d.data().seasonId === seasonId)) {
-        throw new Error("Another auction is already active.");
+      for (const d of activeSnap.docs) {
+        if (d.data().seasonId === seasonId) {
+          tx.update(d.ref, { status: "unsold", updatedAt: FieldValue.serverTimestamp() });
+        }
       }
 
       const auctionRef = db.collection("auctions").doc();

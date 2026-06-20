@@ -202,6 +202,12 @@ export default function AdminAuctionPage() {
     [seasonId],
   );
   const { data: allAuctions } = useCollectionData(unsoldQuery, [seasonId]);
+  // A Firestore lot stuck at status "active" even if the live board is empty —
+  // lets the admin force-stop it (otherwise "Start" would 400 forever).
+  const hasDanglingActive = useMemo(
+    () => allAuctions.some((a) => (a as unknown as { status?: string }).status === "active"),
+    [allAuctions],
+  );
   // Player IDs already in the RTDB sold board (settled this session)
   const soldPlayerIds = useMemo(
     () => new Set(soldEntries.map((e) => e.playerId)),
@@ -386,7 +392,7 @@ export default function AdminAuctionPage() {
         subtitle={auction ? `Live — ${auction.playerName}` : "No active auction"}
         action={
           <div className="flex flex-wrap gap-2">
-            {auction && (
+            {(auction || hasDanglingActive) && (
               <Button variant="red" size="sm" onClick={handleStop} disabled={saving}>
                 <Ban className="h-4 w-4" /> Stop Auction
               </Button>
@@ -668,10 +674,24 @@ export default function AdminAuctionPage() {
             <p className="text-sm font-medium text-ink/50">
               Select a player above to start bidding.
             </p>
-            <Button variant="yellow" onClick={() => setShowStartForm(true)}>
-              <Play className="h-4 w-4" />
-              Start Auction
-            </Button>
+            {hasDanglingActive && (
+              <div className="rounded-2xl border-4 border-ink bg-vred/15 px-4 py-3 text-sm font-bold">
+                A previous lot is still marked active. Starting a new auction will
+                replace it — or press <span className="uppercase">Stop Auction</span> to clear it.
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button variant="yellow" onClick={() => setShowStartForm(true)}>
+                <Play className="h-4 w-4" />
+                Start Auction
+              </Button>
+              {hasDanglingActive && (
+                <Button variant="red" onClick={handleStop} disabled={saving}>
+                  <Ban className="h-4 w-4" />
+                  Stop Auction
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}
