@@ -17,7 +17,7 @@ import { usePlayers } from "@/hooks/usePlayers";
 import { Save, RefreshCw } from "lucide-react";
 import { auth } from "@/firebase/auth";
 import { toast } from "@/hooks/useToast";
-import { advancePlayoffs, sendNotification } from "@/services/adminService";
+import { advancePlayoffs, sendNotification, setMatchLiveState } from "@/services/adminService";
 
 interface PlayerStat {
   playerId: string;
@@ -308,6 +308,15 @@ export default function AdminResultsPage() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ seasonId }),
       }).catch(() => {});
+      // Submitting a result means the match is over — mark it completed so the
+      // admin doesn't have to flip the status separately.
+      try {
+        if (selectedMatch.status !== "completed") {
+          await setMatchLiveState(selectedMatchId, "completed");
+        }
+      } catch {
+        /* result still saved; status flip can be retried from Matches */
+      }
       // Auto-advance the playoff bracket if this was a Q1/Eliminator/Q2 result
       // (best-effort, non-blocking) — fills the next round's TBD slots.
       advancePlayoffs(seasonId).catch(() => {});
@@ -319,7 +328,7 @@ export default function AdminResultsPage() {
         body: "Standings have been updated.",
         href: `/matches/${selectedMatchId}`,
       }).catch(() => {});
-      toast({ type: "success", message: "Result saved." });
+      toast({ type: "success", message: "Result saved — match marked completed." });
     } catch (e) {
       toast({ type: "error", message: e instanceof Error ? e.message : "Failed to save result." });
     } finally {
