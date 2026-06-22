@@ -83,7 +83,38 @@ export function computeTeamStandings(
 }
 
 /** Metrics a player leaderboard can be ranked by (SRS §15). */
-export type PlayerStandingMetric = "kills" | "headshots" | "damage" | "mvpAwards";
+export type PlayerStandingMetric =
+  | "performanceScore"
+  | "kills"
+  | "headshots"
+  | "damage"
+  | "mvpAwards";
+
+/**
+ * Overall performance score from a player's season totals. Rewards impact —
+ * kills, assists, knockdowns, headshots, MVPs and damage — with a small penalty
+ * for deaths. Drives the auto "Overall" rank on the leaderboard + profiles.
+ */
+export function playerPerformanceScore(s: {
+  kills: number;
+  deaths: number;
+  assists: number;
+  knockdowns: number;
+  headshots: number;
+  damage: number;
+  mvpAwards: number;
+}): number {
+  return Math.max(
+    0,
+    s.kills * 2 +
+      s.assists +
+      s.knockdowns +
+      s.headshots +
+      s.mvpAwards * 4 +
+      Math.round(s.damage / 100) -
+      s.deaths,
+  );
+}
 
 /**
  * Derive player standings from `playerMatchStats` (SRS §15). Returns one row
@@ -95,21 +126,41 @@ export function computePlayerStandings(
   players: WithId<Player>[],
   teams: WithId<Team>[],
 ): CachedPlayerStanding[] {
-  type Agg = { kills: number; headshots: number; damage: number; mvpAwards: number; teamId: string };
+  type Agg = {
+    kills: number;
+    deaths: number;
+    assists: number;
+    knockdowns: number;
+    headshots: number;
+    damage: number;
+    mvpAwards: number;
+    matches: Set<string>;
+    teamId: string;
+  };
   const byPlayer = new Map<string, Agg>();
 
   for (const s of stats) {
-    const agg = byPlayer.get(s.playerId) ?? {
-      kills: 0,
-      headshots: 0,
-      damage: 0,
-      mvpAwards: 0,
-      teamId: s.teamId,
-    };
+    const agg =
+      byPlayer.get(s.playerId) ??
+      {
+        kills: 0,
+        deaths: 0,
+        assists: 0,
+        knockdowns: 0,
+        headshots: 0,
+        damage: 0,
+        mvpAwards: 0,
+        matches: new Set<string>(),
+        teamId: s.teamId,
+      };
     agg.kills += s.kills ?? 0;
+    agg.deaths += s.deaths ?? 0;
+    agg.assists += s.assists ?? 0;
+    agg.knockdowns += s.knockdowns ?? 0;
     agg.headshots += s.headshots ?? 0;
     agg.damage += s.damage ?? 0;
     if (s.mvp) agg.mvpAwards += 1;
+    if (s.matchId) agg.matches.add(s.matchId);
     byPlayer.set(s.playerId, agg);
   }
 
@@ -127,10 +178,15 @@ export function computePlayerStandings(
       photoURL: p?.photoURL ?? null,
       teamId,
       teamName: teamName(teamId),
+      matchesPlayed: agg.matches.size,
       kills: agg.kills,
+      deaths: agg.deaths,
+      assists: agg.assists,
+      knockdowns: agg.knockdowns,
       headshots: agg.headshots,
       damage: agg.damage,
       mvpAwards: agg.mvpAwards,
+      performanceScore: playerPerformanceScore(agg),
     };
   });
 }

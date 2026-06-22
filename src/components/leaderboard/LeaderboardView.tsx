@@ -86,6 +86,7 @@ function TeamStandings() {
 }
 
 const METRICS: { id: PlayerStandingMetric; label: string }[] = [
+  { id: "performanceScore", label: "Overall" },
   { id: "kills", label: "Kills" },
   { id: "headshots", label: "Headshots" },
   { id: "damage", label: "Damage" },
@@ -94,7 +95,7 @@ const METRICS: { id: PlayerStandingMetric; label: string }[] = [
 
 function PlayerStandings() {
   const { standings, loading, error } = usePlayerStandings();
-  const [metric, setMetric] = useState<PlayerStandingMetric>("kills");
+  const [metric, setMetric] = useState<PlayerStandingMetric>("performanceScore");
 
   if (loading) return <LoadingRows />;
   if (error)

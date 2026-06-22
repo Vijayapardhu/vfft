@@ -99,7 +99,15 @@ export function PlayerDetailDialog({ player, teamName, onClose }: Props) {
           {/* Season stats */}
           <div>
             <h3 className="mb-2 text-lg font-bold uppercase">Season Stats</h3>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border-2 border-ink bg-vpurple/20 p-3 text-center">
+                <div className="text-xs font-bold uppercase text-ink/60">Overall Rank</div>
+                <div className="text-xl font-bold">{stats?.overallRank ? `#${stats.overallRank}` : "—"}</div>
+              </div>
+              <div className="rounded-xl border-2 border-ink bg-vyellow/20 p-3 text-center">
+                <div className="text-xs font-bold uppercase text-ink/60">Rating</div>
+                <div className="text-xl font-bold">{stats?.performanceScore ?? 0}</div>
+              </div>
               <div className="rounded-xl border-2 border-ink bg-vblue/20 p-3 text-center">
                 <div className="text-xs font-bold uppercase text-ink/60">Matches</div>
                 <div className="text-xl font-bold">{stats?.matchesPlayed ?? 0}</div>

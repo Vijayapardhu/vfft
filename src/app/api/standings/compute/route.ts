@@ -8,7 +8,6 @@ import {
   rankPlayers,
 } from "@/lib/standings";
 import type {
-  CachedPlayerStanding,
   CachedTeamStanding,
   Player,
   PlayerMatchStats,
@@ -53,7 +52,8 @@ export async function POST(req: Request) {
 
     // --- Compute player standings ---
     const rawPlayerStandings = computePlayerStandings(stats, players, teams);
-    const playerStandings = rankPlayers(rawPlayerStandings, "kills");
+    // The stored "rank" is the auto OVERALL performance rank.
+    const playerStandings = rankPlayers(rawPlayerStandings, "performanceScore");
 
     // --- Write cachedTeamStandings/{seasonId} ---
     await db.collection("cachedTeamStandings").doc(seasonId).set({
@@ -103,9 +103,14 @@ export async function POST(req: Request) {
         teamId: standing.teamId,
         matchesPlayed: matchesByPlayer.get(standing.playerId)?.size ?? 0,
         kills: standing.kills,
+        deaths: standing.deaths,
+        assists: standing.assists,
+        knockdowns: standing.knockdowns,
         headshots: standing.headshots,
         damage: standing.damage,
         mvpAwards: standing.mvpAwards,
+        performanceScore: standing.performanceScore,
+        overallRank: standing.rank,
         updatedAt: now,
       });
     }

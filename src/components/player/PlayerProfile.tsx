@@ -112,6 +112,11 @@ export function PlayerProfile({ playerId }: { playerId: string }) {
                   {player.soldPrice.toLocaleString()} coins
                 </span>
               )}
+              {typeof stats?.overallRank === "number" && stats.overallRank > 0 && (
+                <span className="rounded-lg border border-vgreen/50 bg-vgreen/20 px-2 py-0.5 text-xs font-bold text-vgreen">
+                  ⭐ Overall Rank #{stats.overallRank}
+                </span>
+              )}
             </div>
 
             {/* Stat chips */}
@@ -143,7 +148,9 @@ export function PlayerProfile({ playerId }: { playerId: string }) {
       {/* Season stats */}
       <section>
         <h2 className="mb-4 text-2xl font-bold">Season Stats</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <StatCard label="Overall Rank" value={stats?.overallRank ? `#${stats.overallRank}` : "—"} icon={Star} variant="purple" />
+          <StatCard label="Rating" value={stats?.performanceScore ?? 0} icon={Star} variant="yellow" />
           <StatCard label="Matches" value={stats?.matchesPlayed ?? 0} icon={Swords} variant="blue" />
           <StatCard label="Kills" value={stats?.kills ?? 0} icon={Skull} variant="red" />
           <StatCard label="Headshots" value={stats?.headshots ?? 0} icon={Crosshair} variant="green" />

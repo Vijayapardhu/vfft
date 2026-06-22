@@ -50,6 +50,13 @@ export interface PlayerSeasonStats extends Timestamps {
   headshots: number;
   damage: number;
   mvpAwards: number;
+
+  deaths?: number;
+  assists?: number;
+  knockdowns?: number;
+  /** Auto-computed overall performance score + rank for the season. */
+  performanceScore?: number;
+  overallRank?: number;
 }
 
 /**
@@ -91,10 +98,16 @@ export interface CachedPlayerStanding {
   photoURL: string | null;
   teamId: string;
   teamName: string;
+  matchesPlayed: number;
   kills: number;
+  deaths: number;
+  assists: number;
+  knockdowns: number;
   headshots: number;
   damage: number;
   mvpAwards: number;
+  /** Auto-computed overall performance score (powers the Overall rank). */
+  performanceScore: number;
 }
 
 export interface CachedPlayerStandings extends Timestamps {
