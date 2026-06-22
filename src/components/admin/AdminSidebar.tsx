@@ -29,6 +29,8 @@ import {
   FileText,
   TrendingUp,
   Gamepad2,
+  Star,
+  Link2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -39,27 +41,40 @@ interface SidebarSection {
 
 const sections: SidebarSection[] = [
   {
-    label: "Management",
+    label: "Overview",
     links: [
       { label: "Dashboard", href: "/admin", icon: <BarChart3 className="h-4 w-4" /> },
-      { label: "Players", href: "/admin/players", icon: <Users className="h-4 w-4" /> },
-      { label: "Teams", href: "/admin/teams", icon: <Swords className="h-4 w-4" /> },
-      { label: "Franchise Apps", href: "/admin/franchise-applications", icon: <BookUser className="h-4 w-4" /> },
+      { label: "Analytics", href: "/admin/analytics", icon: <TrendingUp className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "Live Ops",
+    links: [
       { label: "Auction", href: "/admin/auction", icon: <Gavel className="h-4 w-4" /> },
       { label: "Matches", href: "/admin/matches", icon: <Gamepad2 className="h-4 w-4" /> },
       { label: "Results", href: "/admin/results", icon: <ClipboardList className="h-4 w-4" /> },
+      { label: "Lineups", href: "/admin/lineups", icon: <ClipboardCheck className="h-4 w-4" /> },
     ],
   },
   {
     label: "Competition",
     links: [
-      { label: "Stats", href: "/admin/stats", icon: <BarChart3 className="h-4 w-4" /> },
       { label: "Standings", href: "/admin/standings", icon: <Trophy className="h-4 w-4" /> },
-      { label: "Season", href: "/admin/seasons", icon: <Calendar className="h-4 w-4" /> },
-      { label: "Achievements", href: "/admin/achievements", icon: <Medal className="h-4 w-4" /> },
-      { label: "Lineups", href: "/admin/lineups", icon: <ClipboardCheck className="h-4 w-4" /> },
+      { label: "Stats", href: "/admin/stats", icon: <BarChart3 className="h-4 w-4" /> },
+      { label: "Seasons", href: "/admin/seasons", icon: <Calendar className="h-4 w-4" /> },
       { label: "Transfers", href: "/admin/transfers", icon: <ArrowLeftRight className="h-4 w-4" /> },
       { label: "Substitutions", href: "/admin/substitutions", icon: <UserMinus className="h-4 w-4" /> },
+      { label: "Achievements", href: "/admin/achievements", icon: <Medal className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "People",
+    links: [
+      { label: "Players", href: "/admin/players", icon: <Users className="h-4 w-4" /> },
+      { label: "Teams", href: "/admin/teams", icon: <Swords className="h-4 w-4" /> },
+      { label: "Franchise Apps", href: "/admin/franchise-applications", icon: <BookUser className="h-4 w-4" /> },
+      { label: "Users", href: "/admin/users", icon: <Users className="h-4 w-4" /> },
+      { label: "Disputes", href: "/admin/disputes", icon: <UserMinus className="h-4 w-4" /> },
     ],
   },
   {
@@ -68,10 +83,12 @@ const sections: SidebarSection[] = [
       { label: "News", href: "/admin/news", icon: <Newspaper className="h-4 w-4" /> },
       { label: "Gallery", href: "/admin/gallery", icon: <Image className="h-4 w-4" /> },
       { label: "Hall of Fame", href: "/admin/hall-of-fame", icon: <Crown className="h-4 w-4" /> },
-      { label: "Home Content", href: "/admin/home", icon: <Home className="h-4 w-4" /> },
+      { label: "Banners", href: "/admin/banners", icon: <Image className="h-4 w-4" /> },
+      { label: "Featured", href: "/admin/featured", icon: <Star className="h-4 w-4" /> },
+      { label: "Home", href: "/admin/home", icon: <Home className="h-4 w-4" /> },
       { label: "Marquee", href: "/admin/marquee", icon: <TicketCheck className="h-4 w-4" /> },
       { label: "Sponsors", href: "/admin/sponsors", icon: <Sparkles className="h-4 w-4" /> },
-      { label: "Weapons", href: "/admin/weapons", icon: <Swords className="h-4 w-4" /> },
+      { label: "Social Links", href: "/admin/social-links", icon: <Link2 className="h-4 w-4" /> },
       { label: "Pages", href: "/admin/pages", icon: <FileText className="h-4 w-4" /> },
     ],
   },
@@ -79,11 +96,9 @@ const sections: SidebarSection[] = [
     label: "System",
     links: [
       { label: "Notifications", href: "/admin/notifications", icon: <Megaphone className="h-4 w-4" /> },
-      { label: "Disputes", href: "/admin/disputes", icon: <UserMinus className="h-4 w-4" /> },
+      { label: "Weapons", href: "/admin/weapons", icon: <Swords className="h-4 w-4" /> },
       { label: "Settings", href: "/admin/settings", icon: <Settings className="h-4 w-4" /> },
-      { label: "Users", href: "/admin/users", icon: <BookUser className="h-4 w-4" /> },
       { label: "Audit", href: "/admin/audit", icon: <FileText className="h-4 w-4" /> },
-      { label: "Analytics", href: "/admin/analytics", icon: <TrendingUp className="h-4 w-4" /> },
     ],
   },
 ];
