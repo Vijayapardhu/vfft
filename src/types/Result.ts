@@ -21,11 +21,16 @@ export interface Result extends Timestamps {
   teamId: string;
 
   kills: number;
-  placementPoints: number;
+  /** Win-based points (1 for a win, 0 for a loss). */
   totalPoints: number;
-  placement?: number;
   outcome?: "win" | "loss";
-  /** Team total damage for the match — feeds the NDR standings tiebreaker. */
+  /** Clash-Squad round score: rounds this team won / lost in the match. */
+  roundsWon?: number;
+  roundsLost?: number;
+  /** Legacy placement scoring (no longer entered; kept for old records). */
+  placementPoints?: number;
+  placement?: number;
+  /** Team total damage for the match — secondary standings tiebreaker. */
   damage?: number;
 
   /** Required link to resultEvidence (TRD §17). */

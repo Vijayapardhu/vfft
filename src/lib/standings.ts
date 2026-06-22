@@ -23,7 +23,8 @@ export function computeTeamStandings(
     losses: number;
     kills: number;
     damage: number;
-    points: number;
+    roundsWon: number;
+    roundsLost: number;
   };
   const newAgg = (): Agg => ({
     matchesPlayed: 0,
@@ -31,7 +32,8 @@ export function computeTeamStandings(
     losses: 0,
     kills: 0,
     damage: 0,
-    points: 0,
+    roundsWon: 0,
+    roundsLost: 0,
   });
   const byTeam = new Map<string, Agg>();
 
@@ -40,7 +42,8 @@ export function computeTeamStandings(
     agg.matchesPlayed += 1;
     agg.kills += r.kills ?? 0;
     agg.damage += r.damage ?? 0;
-    agg.points += r.totalPoints ?? 0;
+    agg.roundsWon += r.roundsWon ?? 0;
+    agg.roundsLost += r.roundsLost ?? 0;
     if (r.outcome === "win") agg.wins += 1;
     if (r.outcome === "loss") agg.losses += 1;
     byTeam.set(r.teamId, agg);
@@ -56,18 +59,21 @@ export function computeTeamStandings(
       teamName: t.name,
       logoUrl: t.logoUrl,
       ndr,
+      // Points = number of wins; round difference is the primary tiebreaker.
+      points: agg.wins,
+      roundDiff: agg.roundsWon - agg.roundsLost,
       ...agg,
     };
   });
 
-  // Ranking algorithm (PRD points table): WINS are primary; everything else is
-  // a tiebreaker, in order — total points, then kills, then NDR, then name.
+  // Ranking: WINS (points) primary, then ROUND DIFFERENCE, then DAMAGE, then
+  // kills, then name. (Kills stay a stat / "most kills" recognition.)
   rows.sort(
     (a, b) =>
-      b.wins - a.wins ||
       b.points - a.points ||
+      b.roundDiff - a.roundDiff ||
+      b.damage - a.damage ||
       b.kills - a.kills ||
-      b.ndr - a.ndr ||
       a.teamName.localeCompare(b.teamName),
   );
   rows.forEach((r, i) => {

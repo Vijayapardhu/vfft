@@ -57,9 +57,10 @@ export default function AdminResultsPage() {
   const { data: allPlayers } = usePlayers();
   const { seasonId } = useActiveSeason();
   const [selectedMatchId, setSelectedMatchId] = useState("");
-  const [team1PP, setTeam1PP] = useState(0);
-  const [team2PP, setTeam2PP] = useState(0);
-  const [winner, setWinner] = useState("");
+  // Clash-Squad round score for each team (e.g. 4–1). The winner is whoever
+  // won more rounds; round difference is the primary standings tiebreaker.
+  const [team1Rounds, setTeam1Rounds] = useState(0);
+  const [team2Rounds, setTeam2Rounds] = useState(0);
   const [evidenceUrl, setEvidenceUrl] = useState("");
   // A second, reference-only screenshot (e.g. the enemy team's stat screen) so
   // both teams' numbers are visible while typing. Not saved as evidence.
@@ -91,9 +92,8 @@ export default function AdminResultsPage() {
   useEffect(() => {
     setTeam1Players([]);
     setTeam2Players([]);
-    setTeam1PP(0);
-    setTeam2PP(0);
-    setWinner("");
+    setTeam1Rounds(0);
+    setTeam2Rounds(0);
     setEvidenceUrl("");
     setRefUrl2("");
     setManualKills1(0);
@@ -120,15 +120,12 @@ export default function AdminResultsPage() {
       const results = resSnap.docs.map((d) => d.data());
       const r1 = results.find((r) => r.teamId === m.team1Id);
       const r2 = results.find((r) => r.teamId === m.team2Id);
-      setTeam1PP(r1?.placementPoints ?? 0);
-      setTeam2PP(r2?.placementPoints ?? 0);
+      setTeam1Rounds(r1?.roundsWon ?? 0);
+      setTeam2Rounds(r2?.roundsWon ?? 0);
       setManualKills1(r1?.kills ?? 0);
       setManualKills2(r2?.kills ?? 0);
       setManualDamage1(r1?.damage ?? 0);
       setManualDamage2(r2?.damage ?? 0);
-      setWinner(
-        r1?.outcome === "win" ? "team1" : r2?.outcome === "win" ? "team2" : "",
-      );
       if (evSnap.exists()) {
         setEvidenceUrl((evSnap.data().screenshotUrl as string) ?? "");
       }
@@ -198,9 +195,6 @@ export default function AdminResultsPage() {
   const team1Damage = team1Players.length > 0
     ? team1Players.reduce((s, p) => s + p.damage, 0)
     : manualDamage1;
-  const team1NDR = team1Players.length > 0
-    ? Math.round(team1Damage / Math.max(1, team1Players.length))
-    : manualDamage1;
 
   const team2Kills = team2Players.length > 0
     ? team2Players.reduce((s, p) => s + p.kills, 0)
@@ -208,9 +202,10 @@ export default function AdminResultsPage() {
   const team2Damage = team2Players.length > 0
     ? team2Players.reduce((s, p) => s + p.damage, 0)
     : manualDamage2;
-  const team2NDR = team2Players.length > 0
-    ? Math.round(team2Damage / Math.max(1, team2Players.length))
-    : manualDamage2;
+
+  // Winner is derived from the round score (e.g. 4–1). "" when tied/unset.
+  const winner: "" | "team1" | "team2" =
+    team1Rounds > team2Rounds ? "team1" : team2Rounds > team1Rounds ? "team2" : "";
 
   function updatePlayerStat(
     team: "team1" | "team2",
@@ -248,12 +243,12 @@ export default function AdminResultsPage() {
         { merge: true },
       );
 
-      const team1Total = team1Kills + team1PP;
-      const team2Total = team2Kills + team2PP;
-
+      // Points are win-based (1 per win); round difference + damage are the
+      // tiebreakers (computed in standings). Store each team's round score and
+      // the opponent's so the standings can total round difference.
       const results = [
-        { teamId: selectedMatch.team1Id, kills: team1Kills, damage: team1Damage, placementPoints: team1PP, totalPoints: team1Total, outcome: (winner === "team1" ? "win" : "loss") as "win" | "loss" },
-        { teamId: selectedMatch.team2Id, kills: team2Kills, damage: team2Damage, placementPoints: team2PP, totalPoints: team2Total, outcome: (winner === "team2" ? "win" : "loss") as "win" | "loss" },
+        { teamId: selectedMatch.team1Id, kills: team1Kills, damage: team1Damage, roundsWon: team1Rounds, roundsLost: team2Rounds, totalPoints: winner === "team1" ? 1 : 0, outcome: (winner === "team1" ? "win" : "loss") as "win" | "loss" },
+        { teamId: selectedMatch.team2Id, kills: team2Kills, damage: team2Damage, roundsWon: team2Rounds, roundsLost: team1Rounds, totalPoints: winner === "team2" ? 1 : 0, outcome: (winner === "team2" ? "win" : "loss") as "win" | "loss" },
       ];
 
       for (const r of results) {
@@ -419,32 +414,41 @@ export default function AdminResultsPage() {
 
         <div className="mt-3 space-y-3 border-t-2 border-ink/10 pt-3">
           <div>
-            <Label>Placement Points</Label>
+            <Label>Rounds Won (this team&apos;s score, e.g. 4)</Label>
             <Input
               type="number"
               min={0}
-              value={team === "team1" ? team1PP : team2PP}
+              max={20}
+              value={team === "team1" ? team1Rounds : team2Rounds}
               onChange={(e) =>
                 team === "team1"
-                  ? setTeam1PP(Number(e.target.value))
-                  : setTeam2PP(Number(e.target.value))
+                  ? setTeam1Rounds(Math.max(0, Number(e.target.value)))
+                  : setTeam2Rounds(Math.max(0, Number(e.target.value)))
               }
             />
           </div>
 
           <div className="rounded-xl border-2 border-ink/10 bg-cream p-3">
-            <div className="grid grid-cols-3 gap-2 text-center text-sm font-bold">
+            <div className="grid grid-cols-4 gap-2 text-center text-sm font-bold">
+              <div>
+                <span className="text-xs text-ink/40">Rounds</span>
+                <p className={`text-lg ${winner === team ? "text-vgreen" : ""}`}>
+                  {team === "team1" ? team1Rounds : team2Rounds}
+                </p>
+              </div>
               <div>
                 <span className="text-xs text-ink/40">Kills</span>
                 <p className="text-lg">{team === "team1" ? team1Kills : team2Kills}</p>
               </div>
               <div>
-                <span className="text-xs text-ink/40">Total DMG</span>
+                <span className="text-xs text-ink/40">DMG</span>
                 <p className="text-lg">{team === "team1" ? team1Damage : team2Damage}</p>
               </div>
               <div>
-                <span className="text-xs text-ink/40">NDR</span>
-                <p className="text-lg text-vpurple">{team === "team1" ? team1NDR : team2NDR}</p>
+                <span className="text-xs text-ink/40">Result</span>
+                <p className={`text-lg ${winner === team ? "text-vgreen" : winner ? "text-vred" : "text-ink/30"}`}>
+                  {winner === team ? "WIN" : winner ? "LOSS" : "—"}
+                </p>
               </div>
             </div>
           </div>
@@ -508,13 +512,20 @@ export default function AdminResultsPage() {
                 {renderPlayerSide("team2")}
               </div>
 
-              <div>
-                <Label>Winner</Label>
-                <Select value={winner} onChange={(e) => setWinner(e.target.value)}>
-                  <option value="">Select winner</option>
-                  <option value="team1">{team1?.name}</option>
-                  <option value="team2">{team2?.name}</option>
-                </Select>
+              <div className="rounded-2xl border-4 border-ink bg-cream p-4 text-center">
+                <p className="text-xs font-bold uppercase tracking-widest text-ink/50">Result</p>
+                <p className="mt-1 text-2xl font-bold">
+                  <span className={winner === "team1" ? "text-vgreen" : ""}>{team1?.name ?? "Team 1"}</span>
+                  {"  "}
+                  <span className="text-ink/40">{team1Rounds} – {team2Rounds}</span>
+                  {"  "}
+                  <span className={winner === "team2" ? "text-vgreen" : ""}>{team2?.name ?? "Team 2"}</span>
+                </p>
+                <p className="mt-1 text-sm font-bold">
+                  {winner
+                    ? `Winner: ${(winner === "team1" ? team1?.name : team2?.name) ?? "—"} (1 pt)`
+                    : "Enter each team's rounds — the winner is the higher score."}
+                </p>
               </div>
 
               <div className="flex flex-wrap gap-2">

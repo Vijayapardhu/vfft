@@ -234,16 +234,18 @@ export function MatchDetail({ matchId }: { matchId: string }) {
               {result && (
                 <div className="mb-3 grid grid-cols-3 gap-2 text-center">
                   <div>
+                    <div className="text-xl font-bold">{result.roundsWon ?? 0}</div>
+                    <div className="text-[10px] font-bold uppercase text-ink/50">Rounds</div>
+                  </div>
+                  <div>
                     <div className="text-xl font-bold">{result.kills}</div>
                     <div className="text-[10px] font-bold uppercase text-ink/50">Kills</div>
                   </div>
                   <div>
-                    <div className="text-xl font-bold">{result.placementPoints}</div>
-                    <div className="text-[10px] font-bold uppercase text-ink/50">Place</div>
-                  </div>
-                  <div>
-                    <div className="text-xl font-bold">{result.totalPoints}</div>
-                    <div className="text-[10px] font-bold uppercase text-ink/50">Total</div>
+                    <div className={`text-xl font-bold ${result.outcome === "win" ? "text-vgreen" : ""}`}>
+                      {result.outcome === "win" ? "WIN" : "LOSS"}
+                    </div>
+                    <div className="text-[10px] font-bold uppercase text-ink/50">Result</div>
                   </div>
                 </div>
               )}

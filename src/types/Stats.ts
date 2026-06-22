@@ -69,6 +69,11 @@ export interface CachedTeamStanding {
   damage: number;
   /** Net Damage Rate — average team damage per match (tiebreaker). */
   ndr: number;
+  /** Clash-Squad round totals + difference (primary tiebreaker after points). */
+  roundsWon: number;
+  roundsLost: number;
+  roundDiff: number;
+  /** Win-based points (1 per match win). */
   points: number;
 }
 

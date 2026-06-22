@@ -53,7 +53,7 @@ export default function AdminStandingsPage() {
         <table className="w-full text-left">
           <thead>
             <tr className="border-b-4 border-ink bg-vyellow">
-              {["#", "Team", "MP", "W", "L", "Kills", "NDR", "Points"].map((h) => (
+              {["#", "Team", "MP", "W", "L", "Diff", "Kills", "DMG", "Points"].map((h) => (
                 <th key={h} className="px-4 py-3 text-sm font-bold uppercase tracking-wide">{h}</th>
               ))}
             </tr>
@@ -69,8 +69,9 @@ export default function AdminStandingsPage() {
                 <td className="px-4 py-3 text-sm font-medium">{s.matchesPlayed}</td>
                 <td className="px-4 py-3 text-sm font-medium text-vgreen">{s.wins}</td>
                 <td className="px-4 py-3 text-sm font-medium text-vred">{s.losses}</td>
+                <td className="px-4 py-3 text-sm font-bold text-vpurple">{(s.roundDiff ?? 0) > 0 ? "+" : ""}{s.roundDiff ?? 0}</td>
                 <td className="px-4 py-3 text-sm font-medium">{s.kills}</td>
-                <td className="px-4 py-3 text-sm font-medium text-vpurple">{s.ndr}</td>
+                <td className="px-4 py-3 text-sm font-medium">{s.damage}</td>
                 <td className="px-4 py-3 text-lg font-bold">{s.points}</td>
               </tr>
             ))}
